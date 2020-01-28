@@ -14,6 +14,11 @@
 #define RAD2DEG(rad)((rad)*180./M_PI)
 #define DEG2RAD(deg)((deg)*M_PI/180.)
 
+
+
+
+
+
 uint8_t bumper[3] = {kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED};
 float minLaserDist = std::numeric_limits<float>::infinity();
 int32_t nLasers = 0, desiredNLasers = 0, desiredAngle = 5;
@@ -36,6 +41,74 @@ void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &msg)
     // Access using bumper[kobuki_msgs::BumperEvent::{}] LEFT, CENTER, or RIGHT
     bumper[msg->bumper] = msg->state;
 }
+
+class Position 
+{
+    uint64_t secondsElapsed;
+    float x, y;
+	public:
+		void getPosition()
+		{
+			cout << "Name : " << name << endl;
+			cout << "Marks : " << marks << endl;		
+            
+        }
+        void setPosition(float posX, float posY)
+        {
+            x = posX;
+            y = posY;
+        }
+        void testEcho(int index)
+        {
+            cout << "Inside Position Class with index: " << index
+        }
+}
+
+class Memory
+{
+    int index = 0;
+    Position poseArray[100];
+	public:
+		void getName()
+		{
+			getline( cin, name );
+		}
+		void getPosition()
+		{
+			cout << "Name : " << name << endl;
+			cout << "Marks : " << marks << endl;		
+            
+        }
+        void testEcho()
+        {
+            poseArray[index]::testEcho(index);
+            index = index + 1;
+        }
+        void setPosition(float posX, float posY)
+        {
+            poseArray[index]::setPosition(posX, posY)
+            index = index + 1;
+        }
+		void displayInfo()
+		{
+			cout << "Name : " << name << endl;
+			cout << "Marks : " << marks << endl;
+		}
+        
+};
+
+
+void testArray() {
+	Student st[5];
+	for( int i=0; i<5; i++ )
+	{
+		st[i].setPos(i, i);
+		cout << "Enter marks" << endl;
+		st[i].getMarks();
+	}
+}
+
+
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
@@ -80,12 +153,11 @@ int main(int argc, char **argv)
     start = std::chrono::system_clock::now();
     uint64_t secondsElapsed = 0;
 
-    while(ros::ok() && secondsElapsed <= 480) {
+    while(ros::ok() && secondsElapsed <= 60) { // TODO: increase time to 480
         ros::spinOnce();
 
         ROS_INFO("Position: (%f,%f) Orientation: %f degrees Range: %f", posX, posY, RAD2DEG(yaw), minLaserDist);
 
-        /*    
         //
         // Check if any of the bumpers were pressed.
         bool any_bumper_pressed = false;
@@ -110,7 +182,6 @@ int main(int argc, char **argv)
             angular = 0.0;
             linear = 0.0;
         }
-        */
 
         vel.angular.z = angular;
         vel.linear.x = linear;
