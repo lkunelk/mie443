@@ -62,64 +62,6 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
 
 
 
-enum State{stop, obs, forw, turn};
-
-geometry_msgs::Twist logic(){
-    /*
-    States:
-    Rotate and observe
-    Move forward
-    */
-
-    // Constants
-    float SECTOR_SIZE = 3.141 / 6; // radians
-    float OBS_SPEED = 1;
-    float TURN_SPEED = 1;
-
-    // Variables
-    geometry_msgs::Twist twist;
-    State state;
-    float turn_angle;
-    float curr_time, turn_time;
-
-
-    // State actions ------------------------------
-    if (state == obs){
-        // Rotate 360 and produce a distance histogram
-        twist.linear.x = 0;
-        twist.angular.z = OBS_SPEED;
-        
-    }
-    else if (state == forw){
-        // Move forward until it reaches an obstacle
-        twist.linear.x = 0.2;
-        twist.angular.z = 0;
-    }
-    else if (state == turn){
-        // Turn a certain angle
-        twist.linear.x = 0;
-        twist.angular.z = TURN_SPEED;
-    }
-
-    // State transitions ----------------------------
-    if (state == obs){
-        
-    }
-    else if (state == forw){
-        if (minLaserDist < 60){
-
-        }
-    }
-    else if (state == turn){
-        if (turn_time > curr_time){
-            state = stop;
-        }
-
-    }
-    
-    return twist;    
-}
-
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "image_listener");
@@ -140,40 +82,77 @@ int main(int argc, char **argv)
     start = std::chrono::system_clock::now();
     uint64_t secondsElapsed = 0;
 
+
+
+
+
+
+
+
+
+
+
+
+    enum State{stop, obs, forw, turn};
+
+    // Constants
+    float SECTOR_SIZE = 3.141 / 6; // radians
+    float OBS_SPEED = 1;
+    float TURN_SPEED = 1;
+
+    // Variables
+    geometry_msgs::Twist twist;
+    State state;
+    float turn_angle;
+    float curr_time, turn_time;
+
     while (ros::ok() && secondsElapsed <= 480)
     {
         ros::spinOnce();
 
-        //ROS_INFO("Position: (%f,%f) Orientation: %f degrees Range: %f", posX, posY, RAD2DEG(yaw), minLaserDist);
+        // State actions ------------------------------
+        if (state == obs){
+            // Rotate 360 and produce a distance histogram
+            twist.linear.x = 0;
+            twist.angular.z = OBS_SPEED;
+            
+        }
+        else if (state == forw){
+            // Move forward until it reaches an obstacle
+            twist.linear.x = 0.2;
+            twist.angular.z = 0;
+        }
+        else if (state == turn){
+            // Turn a certain angle
+            twist.linear.x = 0;
+            twist.angular.z = TURN_SPEED;
+        }
+        else if (state == stop){
+            // Stop
+            twist.linear.x = 0;
+            twist.angular.z = TURN_SPEED;
+        }
 
-        /*    
-        //
-        // Check if any of the bumpers were pressed.
-        bool any_bumper_pressed = false;
-        for (uint32_t b_idx = 0; b_idx < N_BUMPER; ++b_idx)
-        {
-            any_bumper_pressed |= (bumper[b_idx] == kobuki_msgs ::BumperEvent ::PRESSED);
-        } 
-        // 
-        // Control logic after bumpers are being pressed.
-        if (posX < 0.5 && yaw < M_PI / 12 && !any_bumper_pressed)
-        {
-            angular = 0.0;
-            linear = 0.2;
+        // State transitions ----------------------------
+        if (state == obs){
+            
         }
-        else if (yaw < M_PI / 2 && posX > 0.5 && !any_bumper_pressed)
-        {
-            angular = M_PI / 6;
-            linear = 0.0;
-        }
-        else
-        {
-            angular = 0.0;
-            linear = 0.0;
-        }
-        */
+        else if (state == forw){
+            if (minLaserDist < 60){
 
-        vel = logic();
+            }
+        }
+        else if (state == turn){
+            if (turn_time > curr_time){
+                state = stop;
+            }
+
+        }
+
+
+
+
+
         vel_pub.publish(vel);
 
         // The last thing to do is to update the timer.
