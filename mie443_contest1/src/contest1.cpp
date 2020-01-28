@@ -47,66 +47,46 @@ class Position
     uint64_t secondsElapsed;
     float x, y;
 	public:
-		void getPosition()
-		{
-			cout << "Name : " << name << endl;
-			cout << "Marks : " << marks << endl;		
-            
-        }
         void setPosition(float posX, float posY)
         {
             x = posX;
             y = posY;
         }
-        void testEcho(int index)
-        {
-            cout << "Inside Position Class with index: " << index
-        }
-}
+        float getX() { return x; }
+        float getY() { return y; }
+
+};
 
 class Memory
-{
-    int index = 0;
-    Position poseArray[100];
+{   
+    Position poseArray[100]; // TODO: make sure this is big enough
+    private:
+        int index;
 	public:
-		void getName()
-		{
-			getline( cin, name );
-		}
-		void getPosition()
-		{
-			cout << "Name : " << name << endl;
-			cout << "Marks : " << marks << endl;		
-            
-        }
-        void testEcho()
-        {
-            poseArray[index]::testEcho(index);
-            index = index + 1;
-        }
+        Memory() { index = 0; }
         void setPosition(float posX, float posY)
         {
-            poseArray[index]::setPosition(posX, posY)
-            index = index + 1;
+            poseArray[index].setPosition(posX, posY);
+            ROS_INFO("Set Position at index %i: (%f, %f).", index, posX, posY);
+            index++;
+        } 
+        void getPosition(int index)
+        {
+            float x = poseArray[index].getX(), y = poseArray[index].getY();
+            ROS_INFO("Position at index %i: (%f, %f).", index, x, y);
         }
-		void displayInfo()
-		{
-			cout << "Name : " << name << endl;
-			cout << "Marks : " << marks << endl;
-		}
-        
 };
 
 
-void testArray() {
-	Student st[5];
-	for( int i=0; i<5; i++ )
-	{
-		st[i].setPos(i, i);
-		cout << "Enter marks" << endl;
-		st[i].getMarks();
-	}
-}
+// void testArray() {
+// 	Student st[5];
+// 	for( int i=0; i<5; i++ )
+// 	{
+// 		st[i].setPos(i, i);
+// 		cout << "Enter marks" << endl;
+// 		st[i].getMarks();
+// 	}
+// }
 
 
 
@@ -153,44 +133,60 @@ int main(int argc, char **argv)
     start = std::chrono::system_clock::now();
     uint64_t secondsElapsed = 0;
 
-    while(ros::ok() && secondsElapsed <= 60) { // TODO: increase time to 480
-        ros::spinOnce();
+	Memory mem;
+    float number = 1.1234;
+	for( int i=0; i<5; i++ )
+	{ 
+        number = number + 1.000;
+		mem.setPosition(number, number * 2);
+	}
 
-        ROS_INFO("Position: (%f,%f) Orientation: %f degrees Range: %f", posX, posY, RAD2DEG(yaw), minLaserDist);
+	for( int i=0; i<5; i++ )
+	{ 
+        mem.getPosition(i);
+	}
 
-        //
-        // Check if any of the bumpers were pressed.
-        bool any_bumper_pressed = false;
-        for (uint32_t b_idx = 0; b_idx < N_BUMPER; ++b_idx)
-        {
-            any_bumper_pressed |= (bumper[b_idx] == kobuki_msgs ::BumperEvent ::PRESSED);
-        } 
-        // 
-        // Control logic after bumpers are being pressed.
-        if (posX < 0.5 && yaw < M_PI / 12 && !any_bumper_pressed)
-        {
-            angular = 0.0;
-            linear = 0.2;
-        }
-        else if (yaw < M_PI / 2 && posX > 0.5 && !any_bumper_pressed)
-        {
-            angular = M_PI / 6;
-            linear = 0.0;
-        }
-        else
-        {
-            angular = 0.0;
-            linear = 0.0;
-        }
 
-        vel.angular.z = angular;
-        vel.linear.x = linear;
-        vel_pub.publish(vel);
 
-        // The last thing to do is to update the timer.
-        secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
-        loop_rate.sleep();
-    }
+
+    // while(ros::ok() && secondsElapsed <= 60) { // TODO: increase time to 480
+    //     ros::spinOnce();
+
+    //     ROS_INFO("Position: (%f,%f) Orientation: %f degrees Range: %f", posX, posY, RAD2DEG(yaw), minLaserDist);
+
+    //     //
+    //     // Check if any of the bumpers were pressed.
+    //     bool any_bumper_pressed = false;
+    //     for (uint32_t b_idx = 0; b_idx < N_BUMPER; ++b_idx)
+    //     {
+    //         any_bumper_pressed |= (bumper[b_idx] == kobuki_msgs ::BumperEvent ::PRESSED);
+    //     } 
+    //     // 
+    //     // Control logic after bumpers are being pressed.
+    //     if (posX < 0.5 && yaw < M_PI / 12 && !any_bumper_pressed)
+    //     {
+    //         angular = 0.0;
+    //         linear = 0.2;
+    //     }
+    //     else if (yaw < M_PI / 2 && posX > 0.5 && !any_bumper_pressed)
+    //     {
+    //         angular = M_PI / 6;
+    //         linear = 0.0;
+    //     }
+    //     else
+    //     {
+    //         angular = 0.0;
+    //         linear = 0.0;
+    //     }
+
+    //     vel.angular.z = angular;
+    //     vel.linear.x = linear;
+    //     vel_pub.publish(vel);
+
+    //     // The last thing to do is to update the timer.
+    //     secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
+    //     loop_rate.sleep();
+    // }
 
     return 0;
 }
