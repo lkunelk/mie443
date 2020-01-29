@@ -19,6 +19,8 @@ float minLaserDist = std::numeric_limits<float>::infinity();
 int32_t nLasers = 0, desiredNLasers = 0, desiredAngle = 5;
 
 float posX = 0.0, posY = 0.0, yaw = 0.0;
+float angdist[3] = {0,0,0}; 
+float angles[3] =  {0,0,0}:
 
 void odomCallback(const nav_msgs::Odometry::ConstPtr &msg)
 {
@@ -58,9 +60,45 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
     }
 }
 
+void update_dist()
 
+{
+    //Take a laser reading
+    laserCallback();
+    odomCallback();
 
+    if(minLaserDist > angdist[3])
+    {
+        if (minLaserDist > angdist[1])
+        {
+            // update angles
+            angdist[3] = angdist[2];
+            angdist[2] = angdist[1];
+            angdist[1] = minLaserDist;
 
+            angles[3] = angles[2];
+            angles[2] = angles[1];
+            angles[1] = yaw;
+        }
+
+        else if (minLaserDist > angdist[2])
+        {
+            angdist[3] = angdist[2];
+            angdist[2] = minLaserDist;
+
+            angles[3] = angles[2];
+            angles[2] = yaw;
+        }
+
+        else 
+        {
+            angdist[3] = minLaserDist;
+
+            angles[3] = yaw;
+        }
+    }
+
+}
 
 int main(int argc, char **argv)
 {
@@ -81,17 +119,6 @@ int main(int argc, char **argv)
     std::chrono::time_point<std::chrono::system_clock> start;
     start = std::chrono::system_clock::now();
     uint64_t secondsElapsed = 0;
-
-
-
-
-
-
-
-
-
-
-
 
     enum State{stop, obs, forw, turn};
 
@@ -115,6 +142,8 @@ int main(int argc, char **argv)
             // Rotate 360 and produce a distance histogram
             twist.linear.x = 0;
             twist.angular.z = OBS_SPEED;
+
+            update_dist();
             
         }
         else if (state == forw){
