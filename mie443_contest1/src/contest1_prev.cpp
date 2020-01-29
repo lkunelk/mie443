@@ -60,6 +60,41 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
 
 
 
+enum State{STOP, OBS, FORW, TURN};
+
+// Constants
+float SECTOR_SIZE = 3.141 / 6; // radians
+float OBS_SPEED = 1;
+float TURN_SPEED = 1;
+float STOP_DIST = 0.60;
+State START_STATE = FORW;
+
+// Turn Specific
+float turn_time = -1;
+float turn_angle;
+bool new_turn = false;
+State state_after_turn;
+
+// Universal
+State state = START_STATE;
+
+void turn(float angle, State next_state=STOP){
+    state = TURN;
+    turn_angle = angle;
+    state_after_turn = next_state;
+    new_turn = true;
+    
+} 
+
+void forward(){
+    state = FORW;
+}
+
+void stop(){
+    state = STOP;
+}
+
+
 
 int main(int argc, char **argv)
 {
@@ -92,75 +127,60 @@ int main(int argc, char **argv)
 
 
 
-    enum State{stop, obs, forw, turn};
-
-    // Constants
-    float SECTOR_SIZE = 3.141 / 6; // radians
-    float OBS_SPEED = 1;
-    float TURN_SPEED = 1;
+    
 
     // Variables
     geometry_msgs::Twist twist;
-    State state;
-    float turn_angle;
-    float curr_time, turn_time;
-    bool new_state = true;
-
+ 
+    
+    turn(3.14);
     while (ros::ok() && secondsElapsed <= 480)
     {
         ros::spinOnce();
+        ROS_INFO("%f, %f", turn_time, ros::Time::now().toSec());
+
 
         // State actions ------------------------------
-        if (state == obs){
+        if (state == OBS){
             // Rotate 360 and produce a distance histogram
             twist.linear.x = 0;
             twist.angular.z = OBS_SPEED;
             
         }
-        else if (state == forw){
+        else if (state == FORW){
             // Move forward until it reaches an obstacle
             twist.linear.x = 0.2;
             twist.angular.z = 0;
         }
-        else if (state == turn){
-            if (new_state){
-                turn_time = secondsElapsed + turn_angle / TURN_SPEED;
-                new_state = false; 
+        else if (state == TURN){
+            // New command
+            double curr_time = ros::Time::now().toSec();
+            if (new_turn){
+                turn_time = curr_time + abs(turn_angle) / TURN_SPEED;
+                //ROS_INFO("Turning %f. Will take %f seconds", angle, turn_time - curr_time);
+                new_turn = false;
+
+                twist.linear.x = 0;
+                twist.angular.z = TURN_SPEED * abs(turn_angle) / turn_angle;
             }
-            // Turn a certain angle
-            twist.linear.x = 0;
-            twist.angular.z = TURN_SPEED;
+            // Command in action
+            else if (turn_time >= curr_time){
+                state = state_after_turn;
+                turn_time = -1;
+            }
         }
-        else if (state == stop){
+        else if (state == STOP){
             // Stop
             twist.linear.x = 0;
-            twist.angular.z = TURN_SPEED;
+            twist.angular.z = 0;
         }
 
-        ROS_INFO(state)
-        // State transitions ----------------------------
-        if (state == obs){
-            
-        }
-        else if (state == forw){
-            if (minLaserDist < 60){
-                state = turn;
-                turn_angle = 3.14;
-                new_state = true;
-            }
-        }
-        else if (state == turn){
-            if (turn_time > timeElapsed){
-                state = stop;
-            }
-
-        }
+       
 
 
 
 
-
-        vel_pub.publish(vel);
+        vel_pub.publish(twist);
 
         // The last thing to do is to update the timer.
         secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count();

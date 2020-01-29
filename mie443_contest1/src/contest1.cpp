@@ -14,6 +14,9 @@
 #define RAD2DEG(rad) ((rad)*180. / M_PI)
 #define DEG2RAD(deg) ((deg)*M_PI / 180.)
 
+ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel_mux/input/teleop", 1);
+geometry_msgs::Twist vel;
+
 uint8_t bumper[3] = {kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED};
 float minLaserDist = std::numeric_limits<float>::infinity();
 int32_t nLasers = 0, desiredNLasers = 0, desiredAngle = 5;
@@ -62,62 +65,37 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
 
 
 
-enum State{stop, obs, forw, turn};
-
-geometry_msgs::Twist logic(){
-    /*
-    States:
-    Rotate and observe
-    Move forward
-    */
-
-    // Constants
-    float SECTOR_SIZE = 3.141 / 6; // radians
-    float OBS_SPEED = 1;
-    float TURN_SPEED = 1;
-
-    // Variables
-    geometry_msgs::Twist twist;
-    State state;
-    float turn_angle;
-    float curr_time, turn_time;
-
-
-    // State actions ------------------------------
-    if (state == obs){
-        // Rotate 360 and produce a distance histogram
-        twist.linear.x = 0;
-        twist.angular.z = OBS_SPEED;
-        
-    }
-    else if (state == forw){
-        // Move forward until it reaches an obstacle
-        twist.linear.x = 0.2;
-        twist.angular.z = 0;
-    }
-    else if (state == turn){
-        // Turn a certain angle
-        twist.linear.x = 0;
-        twist.angular.z = TURN_SPEED;
-    }
-
-    // State transitions ----------------------------
-    if (state == obs){
-        
-    }
-    else if (state == forw){
-        if (minLaserDist < 60){
-
-        }
-    }
-    else if (state == turn){
-        if (turn_time > curr_time){
-            state = stop;
-        }
-
-    }
+void forward(float distance, float speed){
+    float next_update = ros::Time::now().toSec() + std::abs(distance) / std::abs(speed);
     
-    return twist;    
+    vel.linear.x = speed * std::abs(distance) / distance;
+    vel.angular.z = 0;
+
+    ROS_INFO("Moving %f m, will take %f s, will finish at %f s", distance, std::abs(distance) / std::abs(speed), next_update);
+
+    while(ros::ok() && ros::Time::now().toSec() < next_update){
+        vel_pub.publish(vel);
+    }
+}
+
+void rotate(float angle, float speed){
+    float next_update = ros::Time::now().toSec() + std::abs(angle) / std::abs(speed);
+    
+    vel.linear.x = 0;
+    vel.angular.z = speed * std::abs(angle) / angle;
+
+    ROS_INFO("Rotating %f, will take %f s, will finish at %f s", angle, std::abs(angle) / std::abs(speed), next_update);    
+    while(ros::ok() && ros::Time::now().toSec() < next_update){
+        vel_pub.publish(vel);
+    }
+}
+
+void stop(){
+    ROS_INFO("STOPPED");
+    vel.linear.x = 0;
+    vel.angular.z = 0;
+
+    vel_pub.publish(vel);
 }
 
 int main(int argc, char **argv)
@@ -127,54 +105,27 @@ int main(int argc, char **argv)
 
     ros::Subscriber bumper_sub = nh.subscribe("mobile_base/events/bumper", 10, &bumperCallback);
     ros::Subscriber laser_sub = nh.subscribe("scan", 10, &laserCallback);
-
-    ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel_mux/input/teleop", 1);
     ros::Subscriber odom = nh.subscribe("odom", 1, &odomCallback);
 
     ros::Rate loop_rate(10);
 
-    geometry_msgs::Twist vel;
 
     // contest count down timer
     std::chrono::time_point<std::chrono::system_clock> start;
     start = std::chrono::system_clock::now();
     uint64_t secondsElapsed = 0;
 
+ 
+
     while (ros::ok() && secondsElapsed <= 480)
     {
         ros::spinOnce();
 
-        //ROS_INFO("Position: (%f,%f) Orientation: %f degrees Range: %f", posX, posY, RAD2DEG(yaw), minLaserDist);
+        /// Logic goes here
 
-        /*    
-        //
-        // Check if any of the bumpers were pressed.
-        bool any_bumper_pressed = false;
-        for (uint32_t b_idx = 0; b_idx < N_BUMPER; ++b_idx)
-        {
-            any_bumper_pressed |= (bumper[b_idx] == kobuki_msgs ::BumperEvent ::PRESSED);
-        } 
-        // 
-        // Control logic after bumpers are being pressed.
-        if (posX < 0.5 && yaw < M_PI / 12 && !any_bumper_pressed)
-        {
-            angular = 0.0;
-            linear = 0.2;
-        }
-        else if (yaw < M_PI / 2 && posX > 0.5 && !any_bumper_pressed)
-        {
-            angular = M_PI / 6;
-            linear = 0.0;
-        }
-        else
-        {
-            angular = 0.0;
-            linear = 0.0;
-        }
-        */
-
-        vel = logic();
-        vel_pub.publish(vel);
+        rotate(3.14/2, 1);
+        forward(1, 0.5);
+        stop(vel_pub, vel);
 
         // The last thing to do is to update the timer.
         secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count();
