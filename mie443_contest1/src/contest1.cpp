@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <cmath>
 
+using namespace std; 
+
+
 #include <chrono>
 
 #define N_BUMPER (3)
@@ -42,6 +45,11 @@ class Position
     uint64_t secondsElapsed;
     int x, y;
 	public:
+        Position(int posX, int posY) { 
+            x = posX;
+            y = posY;
+        }
+
         void setPosition(int posX, int posY)
         {
             x = posX;
@@ -125,6 +133,90 @@ Position* input2DArrayOutputPositionArray(int** my2DArray, int height, int width
 
 }
 
+class QItem { 
+    public: 
+        int row; 
+        int col; 
+        int dist; 
+        QItem(int x, int y, int w) 
+            : row(x), col(y), dist(w) 
+        { 
+        } 
+}; 
+
+Position*  minDistance(int** grid, int height, int width, int initialX, int initialY) 
+{ 
+    int CONFIDENCE_PERCENTAGE = 95
+
+    // To keep track of visited QItems. Marking 
+    // blocked cells as visited. 
+    bool visited[height][width]; 
+    // for (int i = 0; i < height; i++) { 
+    //     for (int j = 0; j < width; j++) 
+    //     { 
+    //         // Cutoff at 95% Gmapping Occupancy confidence
+    //         if (grid[i][j] < CONFIDENCE_PERCENTAGE) 
+    //             visited[i][j] = true; 
+    //         else
+    //             visited[i][j] = false; 
+
+    //     } 
+    // } 
+  
+    // applying BFS on matrix cells starting from source 
+    Position* path = 0;
+    // Initialize array of full map size, probably inefficient
+    path = new Position[height * width];
+
+    int PATH_INDEX = 0;  
+    
+    QItem source(0, 0, 0); 
+    std::queue<QItem> q; 
+    q.push(source); 
+    visited[initialX][initialY] = true; 
+    while (!q.empty()) { 
+        QItem p = q.front(); 
+        q.pop(); 
+
+        // add top of queue to the explored Path, wait.. this might not work
+        path[PATH_INDEX] = new Position (p.row, p.col);
+        PATH_INDEX++;
+
+
+        // Destination found; 
+        if (grid[p.row][p.col] == height * width - 1) 
+            return path; 
+  
+        // moving up 
+        if (p.row - 1 >= 0 && 
+            visited[p.row - 1][p.col] == false) { 
+            q.push(QItem(p.row - 1, p.col, p.dist + 1)); 
+            visited[p.row - 1][p.col] = true; 
+        } 
+  
+        // moving down 
+        if (p.row + 1 < height && 
+            visited[p.row + 1][p.col] == false) { 
+            q.push(QItem(p.row + 1, p.col, p.dist + 1)); 
+            visited[p.row + 1][p.col] = true; 
+        } 
+  
+        // moving left 
+        if (p.col - 1 >= 0 && 
+            visited[p.row][p.col - 1] == false) { 
+            q.push(QItem(p.row, p.col - 1, p.dist + 1)); 
+            visited[p.row][p.col - 1] = true; 
+        } 
+  
+         // moving right 
+        if (p.col + 1 < width && 
+            visited[p.row][p.col + 1] == false) { 
+            q.push(QItem(p.row, p.col + 1, p.dist + 1)); 
+            visited[p.row][p.col + 1] = true; 
+        } 
+    } 
+    return path; 
+} 
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
@@ -200,7 +292,9 @@ int main(int argc, char **argv)
     // Function to print 2D array
     output2DArray(my2DArray, height, width);
 
-    Position* output = testFunction(height, width);
+    Position* output = minDistance(my2DArray, height, width, 0, 0);
+
+    // Position* output = input2DArrayOutputPositionArray(height, width);
     for (int w = 0; w < height * width; w++)
     {
         printf("%i, %i", output[w].getX(), output[w].getY());
