@@ -28,3 +28,6 @@ target_link_libraries(contest1 ${catkin_LIBRARIES} ${OpenCV_LIB})
 
 add_executable(gmap_to_index src/gmap_to_index.cpp)
 target_link_libraries(gmap_to_index ${catkin_LIBRARIES})
+
+add_executable(arrays src/arrays.cpp)
+target_link_libraries(arrays ${catkin_LIBRARIES})

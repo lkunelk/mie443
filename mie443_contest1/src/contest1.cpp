@@ -150,13 +150,14 @@ class DFSGraph
 {
     int V;                                // No. of vertices
     std::list<int> *adjList;
-    std::list<int> path;                   // adjacency list
+    std::list<int> path;    
     void DFS_util(int v, bool visited[]); // A function used by DFS
     public:
         // class Constructor
         DFSGraph(int V)
         {
             this->V = V;
+            // this->currentDepth = 0;
             adjList = new list<int>[V];
             // path = new list<int>;
         }
@@ -224,157 +225,63 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 
 
 
+///
+//
+// read gmap map and transforms
+// publish map and index
+//
+
+#include <ros/console.h>
+#include "ros/ros.h"
+#include "nav_msgs/OccupancyGrid.h"
+#include "nav_msgs/MapMetaData.h"
+#include <tf/transform_listener.h>
+#include <geometry_msgs/Point.h>
+
+void mapCallback(const nav_msgs::OccupancyGrid::ConstPtr& msg)
+{
+    geometry_msgs::Point p = msg->info.origin.position;
+
+
+    // int8[] data = msg->data;
+    nav_msgs::MapMetaData info = msg->info;
+    // uint32 height = msg->info.height;
+
+    ROS_INFO_STREAM("map! " << p.x << ", " << p.y << ", " << p.z << "\n");
+    ROS_INFO_STREAM("w/h " << info.width << ", " << info.height << ", " << "\n");
+
+    // ros::Duration(5.0).sleep();
+
+}
+
+//
+
+
+
+
+
+
+
+
 int main(int argc, char **argv)
 {
-    // ros::init(argc, argv, "image_listener");
-    // ros::NodeHandle nh;
+    ROS_INFO_STREAM("Starting!");
+    ros::init(argc, argv, "nam_node");
+    ros::NodeHandle nh;
+    ros::Subscriber map_sub = nh.subscribe("/map", 10, &mapCallback);
 
-    // ros::Subscriber bumper_sub = nh.subscribe("mobile_base/events/bumper", 10, &bumperCallback);
-    // ros::Subscriber laser_sub = nh.subscribe("scan", 10, &laserCallback);
-
-    // ros::Publisher vel_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel_mux/input/teleop", 1);
-    // ros::Subscriber odom = nh.subscribe("odom", 1, &odomCallback);
-
-    // ros::Rate loop_rate(10);
-
-    geometry_msgs::Twist vel;
-
-    // contest count down timer
-    std::chrono::time_point<std::chrono::system_clock> start;
-    start = std::chrono::system_clock::now();
-    uint64_t secondsElapsed = 0;
-
-    // // Testing Memory and Position class
-	// Memory mem;
-    // float number = 1.1234;
-	// for( int i=0; i<5; i++ )
-	// { 
-    //     number = number + 1.000;
-	// 	mem.setPosition(number, number * 2);
-	// }
-
-	// for( int i=0; i<5; i++ )
-	// { 
-    //     mem.getPosition(i);
-	// }
-
-    printf("Creating a 2D array2D\n");
-    printf("\n");
-
-    int height = 5;
-    int width = 10;
-    int** my2DArray = create2DArray(height, width);
-
-    // int** arrayOfCoords = DFS(my2DArray)
-    
-    printf("Array sized [%i,%i] created.\n\n", height, width);
-
-    // print contents of the array2D
-    printf("Array contents: \n");
-
-    // Function to print 2D array
-    output2DArray(my2DArray, height, width);
-
-    // Position* output = minDistance(my2DArray, height, width, 0, 0);
-
-    // Position* output = input2DArrayOutputPositionArray(height, width);
-    // for (int w = 0; w < height * width; w++)
-    // {
-    //     printf("%i, %i", output[w].getX(), output[w].getY());
-    //     printf("\n");
-    // }
-    // printf("\n");
-
-    // important: clean up memory
-    printf("\n");
-    printf("Cleaning up memory...\n");
-    for ( int h = 0; h < height; h++)
-    {
-        delete [] my2DArray[h];
+    tf::TransformListener listener;
+    tf::StampedTransform robotPose;
+    while(ros::ok()) {
+        try {
+            listener.lookupTransform("map", "base_link", ros::Time(0), robotPose);
+            // ROS_INFO_STREAM("robot pose! " << robotPose.getOrigin().x() << ", " << robotPose.getOrigin().y() << "\n");
+        } catch(tf::TransformException ex) {
+            ROS_ERROR("%s",ex.what());
+            ros::Duration(1.0).sleep();
+            continue;
+        }
     }
-    delete [] my2DArray;
-    my2DArray = 0;
-    printf("Ready.\n");
-
-
-
-
-
-
-/////////////////////////
-
-
-
-    // Create a graph
-    DFSGraph gdfs(10);
-
-    for (int h = 0; h < height - 2; h++)
-    {
-        // gdfs.addEdge(h, 1);
-        // for (int w = 0; w < width - 2; w++)
-        // {
-        //     gdfs.addEdge(h, );
-        //     // printf("%i,", w + width * h);
-        // }
-    }
-
-
-    gdfs.addEdge(0, 9);
-    gdfs.addEdge(0, 3);
-    gdfs.addEdge(0, 3);
-    gdfs.addEdge(1, 2);
-    gdfs.addEdge(2, 4);
-    gdfs.addEdge(3, 9);
-    gdfs.addEdge(4, 4);
-
-    cout << "Depth-first traversal for the given graph:" << endl;
-    list<int> path = gdfs.DFS();
-
-    cout << "\n";
-    cout << "Path History:" << endl;
-
-    for (auto v : path)
-        std::cout << v << "\n";
-    // return 0;
-
-    // while(ros::ok() && secondsElapsed <= 60) { // TODO: increase time to 480
-    //     ros::spinOnce();
-
-    //     ROS_INFO("Position: (%f,%f) Orientation: %f degrees Range: %f", posX, posY, RAD2DEG(yaw), minLaserDist);
-
-    //     //
-    //     // Check if any of the bumpers were pressed.
-    //     bool any_bumper_pressed = false;
-    //     for (uint32_t b_idx = 0; b_idx < N_BUMPER; ++b_idx)
-    //     {
-    //         any_bumper_pressed |= (bumper[b_idx] == kobuki_msgs ::BumperEvent ::PRESSED);
-    //     } 
-    //     // 
-    //     // Control logic after bumpers are being pressed.
-    //     if (posX < 0.5 && yaw < M_PI / 12 && !any_bumper_pressed)
-    //     {
-    //         angular = 0.0;
-    //         linear = 0.2;
-    //     }
-    //     else if (yaw < M_PI / 2 && posX > 0.5 && !any_bumper_pressed)
-    //     {
-    //         angular = M_PI / 6;
-    //         linear = 0.0;
-    //     }
-    //     else
-    //     {
-    //         angular = 0.0;
-    //         linear = 0.0;
-    //     }
-
-    //     vel.angular.z = angular;
-    //     vel.linear.x = linear;
-    //     vel_pub.publish(vel);
-
-    //     // The last thing to do is to update the timer.
-    //     secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
-    //     loop_rate.sleep();
-    // }
-
+    ros::spin();
     return 0;
 }
