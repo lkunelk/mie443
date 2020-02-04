@@ -9,7 +9,8 @@
 #include <cmath>
 
 using namespace std; 
-
+#include <iostream>
+#include <list>
 
 #include <chrono>
 
@@ -66,7 +67,7 @@ class Memory
     private:
         int index;
 	public:
-        Memory() { index = 0; }
+        // Memory() { index = 0; }
         void setPosition(float posX, float posY)
         {
             poseArray[index].setPosition(posX, posY);
@@ -116,22 +117,22 @@ void output2DArray(int** my2DArray, int height, int width)
 }
 
 // Template function to output Position array
-Position* input2DArrayOutputPositionArray(int** my2DArray, int height, int width){
-    Position* array2D = 0;
-    array2D = new Position[height * width];
+// Position* input2DArrayOutputPositionArray(int** my2DArray, int height, int width){
+//     Position* array2D = 0;
+//     array2D = new Position[height * width];
 
-    for (int h = 0; h < height; h++)
-    {
-        for (int w = 0; w < width; w++)
-        {
-            array2D[w + width * h].setPosition(h, w);
-            // printf("%i,", w + width * h);
-        }
-    }
+//     for (int h = 0; h < height; h++)
+//     {
+//         for (int w = 0; w < width; w++)
+//         {
+//             array2D[w + width * h].setPosition(h, w);
+//             // printf("%i,", w + width * h);
+//         }
+//     }
 
-    return array2D;
+//     return array2D;
 
-}
+// }
 
 class QItem { 
     public: 
@@ -142,81 +143,61 @@ class QItem {
             : row(x), col(y), dist(w) 
         { 
         } 
-}; 
+};
 
-Position*  minDistance(int** grid, int height, int width, int initialX, int initialY) 
-{ 
-    int CONFIDENCE_PERCENTAGE = 95
+//graph class for DFS travesal
+class DFSGraph
+{
+    int V;                                // No. of vertices
+    std::list<int> *adjList;
+    std::list<int> path;                   // adjacency list
+    void DFS_util(int v, bool visited[]); // A function used by DFS
+    public:
+        // class Constructor
+        DFSGraph(int V)
+        {
+            this->V = V;
+            adjList = new list<int>[V];
+            // path = new list<int>;
+        }
+        // function to add an edge to graph
+        void addEdge(int v, int w)
+        {
+            adjList[v].push_back(w); // Add w to v’s list.
+        }
 
-    // To keep track of visited QItems. Marking 
-    // blocked cells as visited. 
-    bool visited[height][width]; 
-    // for (int i = 0; i < height; i++) { 
-    //     for (int j = 0; j < width; j++) 
-    //     { 
-    //         // Cutoff at 95% Gmapping Occupancy confidence
-    //         if (grid[i][j] < CONFIDENCE_PERCENTAGE) 
-    //             visited[i][j] = true; 
-    //         else
-    //             visited[i][j] = false; 
+        list<int> DFS(); // DFS traversal function
+};
+void DFSGraph::DFS_util(int v, bool visited[])
+{
+    // current node v is visited
+    visited[v] = true;
 
-    //     } 
-    // } 
-  
-    // applying BFS on matrix cells starting from source 
-    Position* path = 0;
-    // Initialize array of full map size, probably inefficient
-    path = new Position[height * width];
+    path.push_back(v);
+    cout << v << " ";
 
-    int PATH_INDEX = 0;  
-    
-    QItem source(0, 0, 0); 
-    std::queue<QItem> q; 
-    q.push(source); 
-    visited[initialX][initialY] = true; 
-    while (!q.empty()) { 
-        QItem p = q.front(); 
-        q.pop(); 
+    // recursively process all the adjacent vertices of the node
+    list<int>::iterator i;
+    for (i = adjList[v].begin(); i != adjList[v].end(); ++i)
+        if (!visited[*i])
+            DFS_util(*i, visited);
+}
 
-        // add top of queue to the explored Path, wait.. this might not work
-        path[PATH_INDEX] = new Position (p.row, p.col);
-        PATH_INDEX++;
+// DFS traversal
+list<int> DFSGraph::DFS()
+{
+    // initially none of the vertices are visited
+    bool *visited = new bool[V];
+    for (int i = 0; i < V; i++)
+        visited[i] = false;
 
+    // explore the vertices one by one by recursively calling  DFS_util
+    for (int i = 0; i < V; i++)
+        if (visited[i] == false)
+            DFS_util(i, visited);
 
-        // Destination found; 
-        if (grid[p.row][p.col] == height * width - 1) 
-            return path; 
-  
-        // moving up 
-        if (p.row - 1 >= 0 && 
-            visited[p.row - 1][p.col] == false) { 
-            q.push(QItem(p.row - 1, p.col, p.dist + 1)); 
-            visited[p.row - 1][p.col] = true; 
-        } 
-  
-        // moving down 
-        if (p.row + 1 < height && 
-            visited[p.row + 1][p.col] == false) { 
-            q.push(QItem(p.row + 1, p.col, p.dist + 1)); 
-            visited[p.row + 1][p.col] = true; 
-        } 
-  
-        // moving left 
-        if (p.col - 1 >= 0 && 
-            visited[p.row][p.col - 1] == false) { 
-            q.push(QItem(p.row, p.col - 1, p.dist + 1)); 
-            visited[p.row][p.col - 1] = true; 
-        } 
-  
-         // moving right 
-        if (p.col + 1 < width && 
-            visited[p.row][p.col + 1] == false) { 
-            q.push(QItem(p.row, p.col + 1, p.dist + 1)); 
-            visited[p.row][p.col + 1] = true; 
-        } 
-    } 
-    return path; 
-} 
+    return path;
+}
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
@@ -240,6 +221,8 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
         }
     }
 }
+
+
 
 int main(int argc, char **argv)
 {
@@ -292,15 +275,15 @@ int main(int argc, char **argv)
     // Function to print 2D array
     output2DArray(my2DArray, height, width);
 
-    Position* output = minDistance(my2DArray, height, width, 0, 0);
+    // Position* output = minDistance(my2DArray, height, width, 0, 0);
 
     // Position* output = input2DArrayOutputPositionArray(height, width);
-    for (int w = 0; w < height * width; w++)
-    {
-        printf("%i, %i", output[w].getX(), output[w].getY());
-        printf("\n");
-    }
-    printf("\n");
+    // for (int w = 0; w < height * width; w++)
+    // {
+    //     printf("%i, %i", output[w].getX(), output[w].getY());
+    //     printf("\n");
+    // }
+    // printf("\n");
 
     // important: clean up memory
     printf("\n");
@@ -314,6 +297,45 @@ int main(int argc, char **argv)
     printf("Ready.\n");
 
 
+
+
+
+
+/////////////////////////
+
+
+
+    // Create a graph
+    DFSGraph gdfs(10);
+
+    for (int h = 0; h < height - 2; h++)
+    {
+        // gdfs.addEdge(h, 1);
+        // for (int w = 0; w < width - 2; w++)
+        // {
+        //     gdfs.addEdge(h, );
+        //     // printf("%i,", w + width * h);
+        // }
+    }
+
+
+    gdfs.addEdge(0, 9);
+    gdfs.addEdge(0, 3);
+    gdfs.addEdge(0, 3);
+    gdfs.addEdge(1, 2);
+    gdfs.addEdge(2, 4);
+    gdfs.addEdge(3, 9);
+    gdfs.addEdge(4, 4);
+
+    cout << "Depth-first traversal for the given graph:" << endl;
+    list<int> path = gdfs.DFS();
+
+    cout << "\n";
+    cout << "Path History:" << endl;
+
+    for (auto v : path)
+        std::cout << v << "\n";
+    // return 0;
 
     // while(ros::ok() && secondsElapsed <= 60) { // TODO: increase time to 480
     //     ros::spinOnce();
