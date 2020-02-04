@@ -21,19 +21,6 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "nam_node");
     ros::NodeHandle nh;
     ros::Subscriber map_sub = nh.subscribe("/map", 10, &mapCallback);
-
-    tf::TransformListener listener;
-    tf::StampedTransform robotPose;
-    while(ros::ok()) {
-        try {
-            listener.lookupTransform("map", "base_link", ros::Time(0), robotPose);
-            ROS_INFO_STREAM("robot pose! " << robotPose.getOrigin().x() << ", " << robotPose.getOrigin().y() << "\n");
-        } catch(tf::TransformException ex) {
-            ROS_ERROR("%s",ex.what());
-            ros::Duration(1.0).sleep();
-            continue;
-        }
-    }
     ros::spin();
     return 0;
 }
