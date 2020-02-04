@@ -12,7 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
 	genmsg
 	image_transport
 	sensor_msgs
-	kobuki_msgs)
+	kobuki_msgs
+	nav_msgs
+	tf)
 
 generate_messages(DEPENDENCIES sensor_msgs kobuki_msgs)
 
@@ -24,3 +26,5 @@ include_directories(include ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 add_executable(contest1 src/contest1.cpp)
 target_link_libraries(contest1 ${catkin_LIBRARIES} ${OpenCV_LIB})
 
+add_executable(gmap_to_index src/gmap_to_index.cpp)
+target_link_libraries(gmap_to_index ${catkin_LIBRARIES})
