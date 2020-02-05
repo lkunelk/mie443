@@ -23,13 +23,6 @@ bool isValid(int row, int col, int ROW, int COL)
 { 
 	// return true if row number and column number 
 	// is in range 
-    if(row == 2 && col == 3) {
-        cout << "row 2 col 3: ";
-        cout << (row >= 0) && (row < ROW) && 
-		    (col >= 0) && (col < COL);
-        cout << endl;
-    }
-         
 	return (row >= 0) && (row < ROW) && 
 		(col >= 0) && (col < COL); 
 } 
@@ -53,14 +46,39 @@ int convert2Dto1D(int row, int col, int numCol)
     return col + numCol * row;
 }
 
+bool checkNeighboursWithDepth(int mat[], int range, int x, int y, int numRow, int numCol)
+{ 
+    for(int i = -range; i <= range; i++){
+        for(int j = -range; j <= range; j++){
+            int row = x + i; 
+			int col = y + j;
+            cout << row << ", " << col << " :" << mat[convert2Dto1D(row, col, numCol)];
+            cout << endl;
+            
+            if (!isValid(row, col, numRow, numCol) || mat[convert2Dto1D(row, col, numCol)] != -1 )
+			{ 
+                return false;
+            }
+
+        }
+    }
+
+
+	// Return -1 if destination cannot be reached 
+	return true; 
+}
+
 // function to find the shortest path between 
 // a given source cell to a destination cell. 
-int BFS(int mat[], int numRow, int numCol, Point src) 
+vector<queueNode>  BFS(int mat[], int numRow, int numCol, Point src) 
 { 
+
+    vector<queueNode> path; 
+
 	// check source and destination cell 
 	// of the matrix have value 1 
-	if (!mat[convert2Dto1D(src.x, src.y, numCol)]) 
-		return -1; 
+	// if (mat[convert2Dto1D(src.x, src.y, numCol)]) 
+	// 	return path; 
 
 	bool visited[convert2Dto1D(numRow, numCol, numCol) - 1]; 
 	memset(visited, false, sizeof visited); 
@@ -71,7 +89,6 @@ int BFS(int mat[], int numRow, int numCol, Point src)
 	// Create a queue for BFS 
 	queue<vector<queueNode> > q; 
 
-    vector<queueNode> path; 
 	// Distance of source cell is 0 
 	queueNode s = {src, 0}; 
 
@@ -83,7 +100,6 @@ int BFS(int mat[], int numRow, int numCol, Point src)
 	while (!q.empty()) 
 	{ 
         path = q.front();
-        // printpath(path);
 
 		queueNode curr = path[path.size() - 1]; 
 		Point pt = curr.pt; 
@@ -94,11 +110,12 @@ int BFS(int mat[], int numRow, int numCol, Point src)
 		// if (mat[pt.x][pt.y] == 20 || pt.x == dest.x && pt.y == dest.y) 
 		
         // cout << convert2Dto1D(pt.x, pt.y, numCol) << " ";
-        if (mat[convert2Dto1D(pt.x, pt.y, numCol)] == 4) 
+        if (mat[convert2Dto1D(pt.x, pt.y, numCol)] == -1 && path.size() >= 1) 
         {
-            // int test = curr.dist;
-            printpath(path);
-			return curr.dist; 
+            // check a (2 X depth + 1) square grid around a point. e.g. 2 = 5X5 grid
+            if (checkNeighboursWithDepth(mat, 2, pt.x, pt.y, numRow, numCol)){
+                return path; 
+            }
         }
 
         q.pop();
@@ -112,13 +129,13 @@ int BFS(int mat[], int numRow, int numCol, Point src)
 			int row = pt.x + rowNum[i]; 
 			int col = pt.y + colNum[i]; 
 
-			cout << row << "," << col << "," << convert2Dto1D(row, col, numCol);
-			cout << "valid?:" << isValid(row, col, numRow, numCol);
-            cout << endl; 
+			// cout << row << "," << col << "," << convert2Dto1D(row, col, numCol);
+			// cout << "valid?:" << isValid(row, col, numRow, numCol);
+            // cout << endl; 
 
 			// if adjacent cell is valid, has path and 
 			// not visited yet, enqueue it. 
-			if (isValid(row, col, numRow, numCol) && mat[convert2Dto1D(row, col, numCol)] && 
+			if (isValid(row, col, numRow, numCol) && mat[convert2Dto1D(row, col, numCol)] < 50 && 
 			!visited[convert2Dto1D(row, col, numCol)]) 
 			{ 
 				// mark cell as visited and enqueue it 
@@ -137,32 +154,39 @@ int BFS(int mat[], int numRow, int numCol, Point src)
 		} 
 	} 
 
+    vector<queueNode> nopath; 
 	// Return -1 if destination cannot be reached 
-	return -1; 
+	return nopath; 
 } 
 
 // Driver program to test above function 
 int main() 
 { 
-    int ROW = 5;
-    int COL = 5;
+    int ROW = 8;
+    int COL = 7;
 	int mat[convert2Dto1D(ROW, COL, COL) - 1] = 
 	{  
-		  1, 0, 1, 1, 1,
-          1, 1, 1, 0, 1,
-          0, 0, 0, 0, 1,
-          1, 1, 1, 1, 1,
-          1, 1, 1, 4, 0
+		  0,  -1, -1,    0, 0, 1, -1,
+          -1, -1,  0,   -1,  0,  1, -1,
+          0,  -1,  -1,  -1, -1, 0, -1,
+          1,   -1, -1,  -1, -1, -1, -1,
+          1,   1,  -1,  -1, -1, -1, -1,
+          1,   1,  -1,  -1, -1, -1, -1,
+          1,   1,  -1,  -1, -1, -1, -1,
+          1,   1,  -1,  -1, -1, -1, -1
 	}; 
 
 	Point source = {0, 0}; 
 
-	int dist = BFS(mat, ROW, COL, source); 
+	vector<queueNode> path = BFS(mat, ROW, COL, source); 
 
-	if (dist != INT_MAX) 
-		cout << "Shortest Path is " << dist ; 
-	else
-		cout << "Shortest Path doesn't exist"; 
+    printpath(path);
+
+
+	// if (dist != INT_MAX) 
+	// 	cout << "Shortest Path is " << dist ; 
+	// else
+	// 	cout << "Shortest Path doesn't exist"; 
 
 	return 0; 
 } 
