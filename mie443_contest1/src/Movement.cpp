@@ -1,21 +1,21 @@
 #include "ros/ros.h"
 #include <geometry_msgs/Twist.h>
+#include <math.h>
 
 class Move{
     private:
         ros::Publisher vel_pub;
         geometry_msgs::Twist vel;
         double next_update;
-        bool verbose;
+        bool verbose_default;
 
     public:
-    Move(ros::NodeHandle nh, bool is_verbose=false){
+    Move(ros::NodeHandle nh){
         vel_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel_mux/input/teleop", 1);
-        set_verbose(is_verbose);
         ROS_INFO("Mover initiated.");
     }
 
-    void forward(double distance, double speed){
+    void forward(double distance, double speed, bool verbose=false){
         next_update = ros::WallTime::now().toSec() + std::abs(distance) / std::abs(speed);
         vel.linear.x = speed * std::abs(distance) / distance;
         vel.angular.z = 0;
@@ -28,7 +28,10 @@ class Move{
         }
     }
 
-    void rotate(double angle, double speed){
+    void rotate(double angle, double speed, bool verbose=false){
+        if (std::abs(angle) > 2 * M_PI){
+            ROS_WARN("Angle given might be in degrees");
+        }
         next_update = ros::WallTime::now().toSec() + std::abs(angle) / std::abs(speed);
         vel.linear.x = 0;
         vel.angular.z = speed * std::abs(angle) / angle;
@@ -41,7 +44,7 @@ class Move{
         }
     }
 
-    void stop(){
+    void stop(bool verbose=false){
         if (verbose){
             ROS_INFO("STOPPED");
         }
@@ -53,10 +56,6 @@ class Move{
 
     double get_next_update(){
         return next_update;
-    }
-
-    void set_verbose(bool is_verbose){
-        verbose = is_verbose;
     }
 };
 
