@@ -2,11 +2,21 @@
 // Idea: Robot SCANS for direction of greatest distance. Then it EXPLORES in that direction.
 //      ^ Two phases: Scanning (where the robot rotates) and Exploring (where the robot moves)
 
-#include "Movement.cpp"
+// Launching simulation bot: roslaunch mie443_contest1 turtlebot_world.launch world:=1
+// Gmapping in Sim: roslaunch turtlebot_gazebo gmapping_demo.launch
+// Running the code: rosrun mie443_contest1 contest1
+
+// Launching real bot: roslaunch turtlebot_bringup minimal.launch
+// Gmapping: roslaunch mie443_contest1 gmapping.launch
+// Saving the map: rosrun map_server map_saver -f /home/turtlebot
+// Running the code: rosrun mie443_contest1 contest1
+
 #include "ros/ros.h"
 #include <sensor_msgs/LaserScan.h>
 #include <chrono>
 #include <math.h>
+
+#include "Movement.cpp"
 
 // Angle conversions
 #define RAD2DEG(rad) ((rad)*180. / M_PI)
@@ -22,7 +32,7 @@
 #define  NUM_SECTORS 12 // Number of sectors to use to find the direction of greatest distance
 #define  EXPLORE_SPEED 0.1 // Speed of the forward exploration in m/s
 #define  EXPLORE_STEP_SIZE 0.1 // Size of each step forward in meters
-#define  CLOSE_THRESH 100 // How close to the obstacle in front before scanning again
+#define  CLOSE_THRESH 0.7 // How close to the obstacle in front before scanning again
 #define  SWEEP_INTERVAL 10 // Sweeps left right after certain number of steps forward
 #define  SWEEP_RADIUS (M_PI / 6) // How much to sweep side to side
 
@@ -58,15 +68,16 @@ double get_angle_of_furthest_distance(int num_sectors, Move move){
     double furthest_distance = -1;
     double angle_of_furthest_distance = -1;
     
-    double rotation;
     double curr_angle;
 
+    // Scanning the surrounding of the robot
     for(int i = 1; i <= num_sectors; i++) {
+        // Rotate and scan
         move.rotate(DEG2RAD(360) / num_sectors, SCAN_ROT_SPEED);
         curr_angle = i * DEG2RAD(360) / num_sectors;
         ros::spinOnce();
-        //ROS_INFO("Current dist: %f, Furthest dist: %f", minLaserDist, furthest_distance);
 
+        // Analyze the laser distance and decide if its is a candidate direction to go
         if(minLaserDist > furthest_distance && minLaserDist < 1000 
             && !(RAD2DEG(curr_angle) < 200 && RAD2DEG(curr_angle) > 160))   { 
             //Second condition to ignore inf. 
@@ -77,22 +88,79 @@ double get_angle_of_furthest_distance(int num_sectors, Move move){
         }
     }
 
-    if(angle_of_furthest_distance > M_PI){
-        rotation = angle_of_furthest_distance - DEG2RAD(360); //e.g 270 degrees -> -90 degrees
+    // Post-processing of the angle
+    if (angle_of_furthest_distance == -1){
+        // If no angles gave valid distances, go back the way it cam
+        angle_of_furthest_distance = DEG2RAD(180); 
     }
-    else{
-        rotation = angle_of_furthest_distance;
+    else if(angle_of_furthest_distance > DEG2RAD(180)){
+        //e.g 270 degrees -> -90 degrees
+        angle_of_furthest_distance = angle_of_furthest_distance - DEG2RAD(360); 
     }
 
-    return rotation;
+    return angle_of_furthest_distance;
 }
 
+double get_angle_of_furthest_distance2(int num_sectors, Move move){
+    // Returns angle to rotate from current position toward the direction of furthest distance
+    // This time, it is based on the surroundings sectors as well
+    double distances[num_sectors];
+    double furthest_distance = -1;
+    double angle_of_furthest_distance = -1;
+    
+    double curr_angle;
+    double average_dist;
+
+    int prev_i, next_i;
+
+    // Get the minLaserDist around the robot
+    for(int i = 0; i < num_sectors; i++) {
+        move.rotate(DEG2RAD(360) / num_sectors, SCAN_ROT_SPEED);
+        ros::spinOnce();
+        distances[i] = minLaserDist;
+    }
+
+    // Analyze the distances and pick direction to go
+    for (int i = 0; i < num_sectors; i++){
+        curr_angle = (i + 1) * DEG2RAD(360) / num_sectors;
+        
+        // If the angle corresponding to the sector is not in the backward section
+        if(!(RAD2DEG(curr_angle) < 200 && RAD2DEG(curr_angle) > 160)){
+            // Compute the indices of the array to be analyzed 
+            next_i = (i + 1) % num_sectors;
+            prev_i = i - 1;
+            if (prev_i < 0){prev_i = num_sectors - 1;}
+
+            // Compute the neighbourhood average and see if it's a candidate direction
+            average_dist = (distances[prev_i] + distances[i] + distances[next_i]) / 3;
+            if (average_dist > furthest_distance && average_dist < 1000){
+                furthest_distance = average_dist;
+                angle_of_furthest_distance = curr_angle;
+            }
+
+            ROS_INFO("Angle: %f, Avg: %f", curr_angle, average_dist);
+        }
+    }
+    ROS_INFO("Chose %f", angle_of_furthest_distance);
+    // Post-processing of the angle
+    if (angle_of_furthest_distance == -1){
+        // If no angles gave valid distances, go back the way it cam
+        angle_of_furthest_distance = DEG2RAD(180); 
+    }
+    else if(angle_of_furthest_distance > DEG2RAD(180)){
+        //e.g 270 degrees -> -90 degrees
+        angle_of_furthest_distance = angle_of_furthest_distance - DEG2RAD(360); 
+    }
+
+    return angle_of_furthest_distance;
+}
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "image_listener");
     ros::NodeHandle nh;
     ros::Subscriber laser_sub = nh.subscribe("scan", 10, &laserCallback);
+
     Move move(nh);
 
     // contest count down timer
@@ -109,13 +177,13 @@ int main(int argc, char **argv)
     while (ros::ok() && secondsElapsed <= 480)
     {
         // Phase 1: Scanning
-        angle = get_angle_of_furthest_distance(NUM_SECTORS, move);
-        move.rotate(angle, ROT_SPEED);
+        angle = get_angle_of_furthest_distance2(NUM_SECTORS, move);
+        move.rotate(angle, ROT_SPEED, false);
 
         // Phase 2: Exploring
         steps = 0;
         ros::spinOnce();
-        while(minLaserDist < CLOSE_THRESH){
+        while(minLaserDist > CLOSE_THRESH){
             move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
             // Sweeping along the way, like a broom
             // if (steps % SWEEP_INTERVAL == 0){
@@ -129,8 +197,14 @@ int main(int argc, char **argv)
             if (secondsElapsed > 480 || !ros::ok()){
                 break;
             }
+            else if(move.is_bumped()){
+                // Move backward 
+                move.forward(-2 * EXPLORE_STEP_SIZE, EXPLORE_SPEED);
+                move.reset_bumped(); // Hopefully won't bump into something while going forward
+            }
             steps++;
             ros::spinOnce();
+
         }
     }
 
