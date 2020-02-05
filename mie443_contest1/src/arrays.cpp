@@ -34,14 +34,13 @@ bool isValid(int row, int col)
 int rowNum[] = {-1, 0, 0, 1}; 
 int colNum[] = {0, -1, 1, 0}; 
 
-int printpath(vector<queueNode>& path, int dist) 
+void printpath(vector<queueNode>& path) 
 { 
+    cout << "print path";
     int size = path.size(); 
     for (int i = 0; i < size; i++)  
         cout << path[i].pt.x << "," << path[i].pt.y << " ";     
     cout << endl; 
-
-    return dist;
 } 
 
 // function to find the shortest path between 
@@ -60,7 +59,7 @@ int BFS(int mat[][COL], Point src, Point dest)
 	visited[src.x][src.y] = true; 
 
 	// Create a queue for BFS 
-	queue<queueNode> q; 
+	queue<vector<queueNode> > q; 
 
     vector<queueNode> path; 
 	// Distance of source cell is 0 
@@ -68,32 +67,39 @@ int BFS(int mat[][COL], Point src, Point dest)
 
     path.push_back(s); 	
 
-	q.push(s); // Enqueue source cell 
+	q.push(path); // Enqueue source cell 
 
 	// Do a BFS starting from source cell 
 	while (!q.empty()) 
 	{ 
 
-        // path = q.front()
-        // q.pop()
-		queueNode curr = q.front(); 
+        path = q.front();
+
+		queueNode curr = path[path.size() - 1]; 
 		Point pt = curr.pt; 
 
 
 		// If we have reached the destination cell, 
 		// we are done 
-		if (pt.x == dest.x && pt.y == dest.y) 
-            // return printpath(path, curr.dist);
+		// if (mat[pt.x][pt.y] == 20 || pt.x == dest.x && pt.y == dest.y) 
+		if (mat[pt.x][pt.y] == 20) 
+        {
+            // int test = curr.dist;
+            printpath(path);
 			return curr.dist; 
+        }
+
+        q.pop();
 
 		// Otherwise dequeue the front cell in the queue 
 		// and enqueue its adjacent cells 
-		q.pop(); 
+		// q.pop(); 
 
 		for (int i = 0; i < 4; i++) 
 		{ 
 			int row = pt.x + rowNum[i]; 
 			int col = pt.y + colNum[i]; 
+
 			
 			// if adjacent cell is valid, has path and 
 			// not visited yet, enqueue it. 
@@ -105,9 +111,13 @@ int BFS(int mat[][COL], Point src, Point dest)
 				queueNode Adjcell = { {row, col}, 
 									curr.dist + 1 }; 
 
+
+
                 vector<queueNode> newpath(path);
                 newpath.push_back(Adjcell); 
-				q.push(Adjcell); 
+
+
+				q.push(newpath); 
 			} 
 		} 
 	} 
@@ -126,7 +136,7 @@ int main()
 		{ 1, 1, 1, 0, 1, 1, 0, 1, 0, 1 }, 
 		{ 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 }, 
 		{ 1, 1, 1, 0, 1, 1, 1, 0, 1, 0 }, 
-		{ 1, 0, 1, 1, 1, 1, 0, 1, 0, 0 }, 
+		{ 1, 0, 1, 1, 20, 1, 0, 1, 0, 0 }, 
 		{ 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 }, 
 		{ 1, 0, 1, 1, 1, 1, 0, 1, 1, 1 }, 
 		{ 1, 1, 0, 0, 0, 0, 1, 0, 0, 1 } 
