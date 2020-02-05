@@ -60,7 +60,7 @@ int BFS(int mat[][COL], Point src, Point dest)
 	visited[src.x][src.y] = true; 
 
 	// Create a queue for BFS 
-	queue<vector<queueNode>> q; 
+	queue<queueNode> q; 
 
     vector<queueNode> path; 
 	// Distance of source cell is 0 
@@ -68,24 +68,23 @@ int BFS(int mat[][COL], Point src, Point dest)
 
     path.push_back(s); 	
 
-	q.push(path); // Enqueue source cell 
+	q.push(s); // Enqueue source cell 
 
 	// Do a BFS starting from source cell 
 	while (!q.empty()) 
 	{ 
 
-        path = q.front()
-        q.pop()
+        // path = q.front()
+        // q.pop()
 		queueNode curr = q.front(); 
-		Point pt = path.front(); 
+		Point pt = curr.pt; 
 
-        path = 
 
 		// If we have reached the destination cell, 
 		// we are done 
 		if (pt.x == dest.x && pt.y == dest.y) 
-            return printpath(path, curr.dist);
-			// return curr.dist; 
+            // return printpath(path, curr.dist);
+			return curr.dist; 
 
 		// Otherwise dequeue the front cell in the queue 
 		// and enqueue its adjacent cells 
