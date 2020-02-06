@@ -67,8 +67,58 @@ int main(int argc, char **argv)
     // Other variables
     //ros::Rate loop_rate(10);
     double angle;
+    int steps;
+    bool ignore_back = false;
 
-    move.rotate(DEG2RAD(360), ROT_SPEED);
+    // TurtleBot runs until timer runs out
+    while (ros::ok() && secondsElapsed <= 480)
+    {
+        // State 1: Scanning
+        ROS_INFO("SCANNING");
+        if (!ignore_back){ // Don't ignore back on first scan
+            angle = full_scan(NUM_SECTORS, move, pick_line, ignore_back);
+            ignore_back = true;
+        }
+        else{
+            angle = forward_scan(NUM_SECTORS, move, pick_line, false);
+        }
+        move.rotate(angle, ROT_SPEED, true);
+
+        // State 2: Travelling
+        ROS_INFO("TRAVELLING");
+        steps = 0;
+        ros::spinOnce();
+        while(minLaserDist > CLOSE_THRESH){
+            move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
+            // Sweeping along the way, like a broom
+            // if (steps % SWEEP_INTERVAL == 0){
+            //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
+            //     move.rotate(-2 * SWEEP_RADIUS, ROT_SPEED);
+            //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
+            // }
+
+            // The last thing to do is to update the timer.
+            secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count();
+            if (secondsElapsed > 480 || !ros::ok()){
+                break;
+            }
+            else if(move.is_bumped()){
+                // Move backward. Hopefully won't bump into something while going forward
+                ROS_WARN("Moving backwards away from collision zone.");
+                move.forward(-2 * EXPLORE_STEP_SIZE, EXPLORE_SPEED);
+                move.reset_bumped();             
+                ignore_back = false;
+                ROS_INFO("Escaped from collision zone. Resuming operation.");
+                break; // After escaping, it goes back to the scanning state
+            }
+            steps++;
+            ros::spinOnce();
+
+        }
+    }
+    ROS_INFO("RUN COMPLETE.");
+
+    return 0;
 }
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
@@ -211,4 +261,3 @@ double forward_scan(int num_sectors, Move move, double(*pick_method)(int, int, d
 
     return angle_of_furthest_distance;
 }
-    
