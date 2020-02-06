@@ -1,19 +1,45 @@
-// PLAN B CODE
-// Idea: Robot SCANS for direction of greatest distance. Then it TRAVELS in that direction.
-//      ^ Two States: Scanning (where the robot rotates) and Traveling (where the robot moves)
+/*
+PLAN B CODE (apparently Plan A as of Feb 6)
+=================================================
+Overview
+Idea: Robot SCANS for direction of greatest distance. Then it TRAVELS in that direction.
+So the robot will be a finite state machine:
+    States: 
+        Scanning: Robot rotates around to find direction to travel.
+        Traveling: Robot moves in straight line.
+        Collision: Robot dealing with collision: robot stops immediately then moves backwards
+    Transitions:
+        Scanning -> Traveling: When robot decides on a direction to travel.
+        Traveling -> Scanning: When robot reaches end of the path.
+        Traveling -> Collision: When robot bumpers is pressed.
+        Collision -> Scanning: When robot finishes moving backward
+=================================================
+Some useful commands.
 
-// Launching simulation bot: roslaunch mie443_contest1 turtlebot_world.launch world:=1
-// Gmapping in Sim: roslaunch turtlebot_gazebo gmapping_demo.launch
-// Visualizing the Gmap: roslaunch turtlebot_rviz_launchers view_navigation.launch
-// Running the code: rosrun mie443_contest1 contest1
+SIMULATION ------------------------
+Launching simulation bot
+    roslaunch mie443_contest1 turtlebot_world.launch world:=1
+Gmapping in Sim
+    roslaunch turtlebot_gazebo gmapping_demo.launch
+Visualizing the Gmap
+    roslaunch turtlebot_rviz_launchers view_navigation.launch
+Running the code
+    rosrun mie443_contest1 contest1
 
-// Launching real bot: roslaunch turtlebot_bringup minimal.launch
-// Gmapping: roslaunch mie443_contest1 gmapping.launch
-// Visualizing the Gmap: roslaunch turtlebot_rviz_launchers view_navigation.launch
-// Saving the map: rosrun map_server map_saver -f /home/turtlebot
-// Running the code: rosrun mie443_contest1 contest1
-
-// Connecting: ssh tuesday@100.65.103.84
+REAL LIFE ---------------------------
+Remote connecting
+    ssh tuesday@100.65.103.84
+Launching real bot
+    roslaunch turtlebot_bringup minimal.launch
+Gmapping
+    roslaunch mie443_contest1 gmapping.launch
+Visualizing the Gmap
+    roslaunch turtlebot_rviz_launchers view_navigation.launch
+Saving the map
+    rosrun map_server map_saver -f /home/turtlebot
+Running the code
+    rosrun mie443_contest1 contest1 
+*/
 
 #include "ros/ros.h"
 #include <sensor_msgs/LaserScan.h>
@@ -27,17 +53,17 @@
 #define DEG2RAD(deg) ((deg)*M_PI / 180.)
 
 // General Speed Constants
-#define  ROT_SPEED 1
+#define  ROT_SPEED 1 // Normal rotation speed (when not looking for directions)
 
-// Scanning constants
-#define  SCAN_ROT_SPEED 0.4
-#define  RADIUS_BACKWARD 75 // Deviation (degrees) from 180 degrees that is considered back 
+// Scanning Constants
+#define  SCAN_ROT_SPEED 0.4 // Rotation speed when scanning
+#define  RADIUS_BACKWARD 75 // Deviation (degrees) from 180 degrees that is considered back of bot
 
 // Traveling constants
 #define  NUM_SECTORS 18 // Number of sectors to use to find the direction of greatest distance
 #define  EXPLORE_SPEED 0.25 // Speed of the forward exploration in m/s
-#define  EXPLORE_STEP_SIZE 0.1 // Size of each step forward in meters
-#define  CLOSE_THRESH 0.55 // How close to the obstacle in front before scanning again
+#define  EXPLORE_STEP_SIZE 0.1 // Size of each step forward in meters 
+#define  CLOSE_THRESH 0.55 // How close to the obstacle in front before scanning again (m)
 // #define  SWEEP_INTERVAL 10 // Sweeps left right after certain number of steps forward
 // #define  SWEEP_RADIUS (M_PI / 6) // How much to sweep side to side
 
@@ -45,14 +71,21 @@
 float minLaserDist = std::numeric_limits<float>::infinity();
 int32_t nLasers = 0, desiredNLasers = 0, desiredAngle = 5;
 
-// Function Definitions
+// Exploration variables
+double angle_of_interest; // Angle found in the Scanning state to be travelled in the Travelling state
+int steps; // Stores the number of steps travelled in the Travelling state
+bool ignore_back = false; // Whether or not to exclude the angles behind the bot as angle of interest
+
+
+// Function Declarations
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg);
 double pick_line(int index, int num_sectors, double *distances);
 double pick_sector(int index, int num_sectors, double *distances);
 double full_scan(int num_sectors, Move move, double (*pick_method)(int, int, double*), bool ignore_back);
 double forward_scan(int num_sectors, Move move, double (*pick_method)(int, int, double*), bool _);
 
-// Function Declarations
+
+// Function Definitions
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "image_listener");
@@ -66,55 +99,55 @@ int main(int argc, char **argv)
     start = std::chrono::system_clock::now();
     uint64_t secondsElapsed = 0;
 
-    // Other variables
-    //ros::Rate loop_rate(10);
-    double angle;
-    int steps;
-    bool ignore_back = false;
-
     // TurtleBot runs until timer runs out
     while (ros::ok() && secondsElapsed <= 480)
     {
         // State 1: Scanning
         ROS_INFO("SCANNING");
-        angle = full_scan(NUM_SECTORS, move, pick_line, ignore_back);
-        ignore_back = true;
- 
-        move.rotate(angle, ROT_SPEED, true);
+        angle_of_interest = full_scan(NUM_SECTORS, move, pick_line, ignore_back);
+        ignore_back = true; // ignore_back is false only at the beginning and after a collision
+
+        move.rotate(angle_of_interest, ROT_SPEED, true);
 
         // State 2: Travelling
         ROS_INFO("TRAVELLING");
-        steps = 0;
-        ros::spinOnce();
+        steps = 1;
+        ros::spinOnce(); // To update minLaserDist
         while(minLaserDist > CLOSE_THRESH){
+            // Periodic sweeping (not scanning)
+            if (steps % 10 == 0){
+                move.rotate(DEG2RAD(360), ROT_SPEED, false);
+            }
+            
+            // If collide during the loop inside the forward function, that loop will break and
+            //  the collision will be handled below.
             move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
+
             // Sweeping along the way, like a broom
             // if (steps % SWEEP_INTERVAL == 0){
             //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
             //     move.rotate(-2 * SWEEP_RADIUS, ROT_SPEED);
             //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
             // }
-            if (steps % 10){
-                break
-            }
 
-            // The last thing to do is to update the timer.
+            // Timer update
             secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count();
             if (secondsElapsed > 480 || !ros::ok()){
                 break;
             }
-            else if(move.is_bumped()){
+            
+            // State 3: Collision
+            if(move.is_bumped()){
                 // Move backward. Hopefully won't bump into something while going forward
                 ROS_WARN("Moving backwards away from collision zone.");
                 move.forward(-2 * EXPLORE_STEP_SIZE, EXPLORE_SPEED);
                 move.reset_bumped();             
-                ignore_back = false;
+                ignore_back = false; // After a collision, the robot should consider moving back the way it came
                 ROS_INFO("Escaped from collision zone. Resuming operation.");
-                break; // After escaping, it goes back to the scanning state
+                break; // After escaping, it goes back to the Scanning state
             }
-            steps++;
-            ros::spinOnce();
-
+            steps = steps + 1;
+            ros::spinOnce(); // To update minLaserDist (for the while loop condition)
         }
     }
     ROS_INFO("RUN COMPLETE.");
@@ -122,20 +155,6 @@ int main(int argc, char **argv)
     return 0;
 }
 
-// void move_to_point(double x1, double y1, double theta1, double x2, double y2){
-//     double distance = ((x2 - x1)^2+(y2 - y1)^2)^0.5;
-//     double angle = DEG2RAD(atan((y2 - y1)/(x2 - x1));
-//     double rotation;
-//     if(angle - yaw > 180) {
-//         rotation = -(360-(angle - theta1));
-//     }
-//     else if(angle - yaw < -180) {
-//         rotation = -360 - (angle - theta1);
-//     }
-//     else {
-//         rotation = angle - theta1;
-//     }
-// }
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
@@ -161,6 +180,9 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
 }
 
 double pick_sector(int index, int num_sectors, double *distances){
+    // When looking at the distance of a certain sector (index), takes into account neighbouring sectors
+
+    // Compute the indices of the array to be analyzed 
     int next_i = (index + 1) % num_sectors;
     int prev_i = index - 1;
     if (prev_i < 0){prev_i = num_sectors - 1;}
@@ -171,19 +193,20 @@ double pick_sector(int index, int num_sectors, double *distances){
 }
 
 double pick_line(int index, int num_sectors, double *distances){
+    // Just gives the distance in the current sector
     return distances[index];
 }
 
 double full_scan(int num_sectors, Move move, double(*pick_method)(int, int, double*), bool ignore_back){
     // Returns angle to rotate from current position toward the direction of furthest distance
-    double distances[num_sectors];
-    double furthest_distance = -1;
-    double angle_of_furthest_distance = -1;
-    
-    double curr_angle;
-    double dist;
+    // Have a choice of "pick_method". Either use pick_line or pick_sector defined above.
 
-    int prev_i, next_i;
+    double distances[num_sectors]; // minLaserDists for each sector
+    double furthest_distance = -1; // Stores the current largest distance
+    double angle_of_furthest_distance = -1; // Stores the angle that corresponds to the furtheset_distance
+    
+    double curr_angle; // Angle corresponding to current index
+    double dist; // Distance value for a particular sector
 
     // Get the minLaserDist around the robot
     for(int i = 0; i < num_sectors; i++) {
@@ -199,7 +222,6 @@ double full_scan(int num_sectors, Move move, double(*pick_method)(int, int, doub
         // If the angle corresponding to the sector is not in the backward section
         if(!(RAD2DEG(curr_angle) < 180 + RADIUS_BACKWARD
              && RAD2DEG(curr_angle) > 180 - RADIUS_BACKWARD) || !ignore_back){
-            // Compute the indices of the array to be analyzed 
             dist = (*pick_method)(i, num_sectors, distances);
 
             if (dist > furthest_distance && dist < 1000){
@@ -209,6 +231,7 @@ double full_scan(int num_sectors, Move move, double(*pick_method)(int, int, doub
             ROS_INFO("Angle: %f, sees %f", RAD2DEG(curr_angle), dist);
         }
     }
+
     // Post-processing of the angle
     if (angle_of_furthest_distance == -1){
         // If no angles gave valid distances, go back the way it cam

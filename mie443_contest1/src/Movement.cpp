@@ -12,7 +12,6 @@ void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &msg)
 {
     // Access using bumper[kobuki_msgs::BumperEvent::{}] LEFT, CENTER, or RIGHT
     bumper[msg->bumper] = msg->state;
-    
 }
 
 class Move{
@@ -20,8 +19,9 @@ class Move{
         ros::Publisher vel_pub;
         ros::Subscriber bumper_sub;
         geometry_msgs::Twist vel;
-        double next_update;
-        bool bumped;
+
+        double next_update; // Time (s) when the current movement will be stopped
+        bool bumped; //Whether or not a collision has occured
 
     public:
     Move(ros::NodeHandle nh){
@@ -33,12 +33,16 @@ class Move{
 
     void forward(double distance, double speed, bool verbose=false){
         bool going_backwards = SIGN(speed) == -1 || SIGN(distance) == -1;
+
         next_update = ros::Time::now().toSec() + std::abs(distance) / std::abs(speed);
+
         vel.linear.x = speed * SIGN(distance);
         vel.angular.z = 0;
+
         if (verbose){
             ROS_INFO("Moving %f m, will take %f s, will finish at %f s", distance, std::abs(distance) / std::abs(speed), next_update);
         }
+
         while(ros::ok() && ros::Time::now().toSec() < next_update){
             if (is_collision() && !going_backwards){
                 // Regarding 2nd term: Can still go backwards when bumper pressed
@@ -52,20 +56,25 @@ class Move{
     }
 
     void rotate(double angle, double speed, bool verbose=false){
+        // Angle is in radians, speed is in radians per second
         if (std::abs(angle) > 2 * M_PI){
             ROS_WARN("Angle given might be in degrees");
         }
+
         next_update = ros::Time::now().toSec() + std::abs(angle) / std::abs(speed);
+
         vel.linear.x = 0;
         vel.angular.z = speed * SIGN(angle);
 
         if (verbose){
             ROS_INFO("Rotating %f deg, will take %f s, will finish at %f s", RAD2DEG(angle), std::abs(angle) / std::abs(speed), next_update);    
         }
+
         while(ros::ok() && ros::Time::now().toSec() < next_update){
             if (is_collision()){
-                bumped = true;
+                ROS_WARN("Collision!");
                 stop(true);
+                bumped = true;
                 break;
             }
             vel_pub.publish(vel);
@@ -76,9 +85,9 @@ class Move{
         if (verbose){
             ROS_INFO("STOPPED");
         }
+
         vel.linear.x = 0;
         vel.angular.z = 0;
-
         vel_pub.publish(vel);
     }
 
@@ -94,7 +103,7 @@ class Move{
     }
 
     bool is_collision(){
-        ros::spinOnce();
+        ros::spinOnce(); // Update the bumper states
         return bumper[kobuki_msgs::BumperEvent::LEFT] == kobuki_msgs::BumperEvent::PRESSED ||
             bumper[kobuki_msgs::BumperEvent::CENTER] == kobuki_msgs::BumperEvent::PRESSED ||
             bumper[kobuki_msgs::BumperEvent::RIGHT] == kobuki_msgs::BumperEvent::PRESSED;
