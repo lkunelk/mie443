@@ -37,3 +37,60 @@ double get_angle_of_furthest_distance(int num_sectors, Move move, bool ignore_ba
 
     return angle_of_furthest_distance;
 }
+
+
+double forward_scan(int num_sectors, Move move, double(*pick_method)(int, int, double*), bool _){
+    // Returns angle to rotate from current position toward the direction of furthest distance
+    // This time, it is based on the surroundings sectors as well.
+    // Also, it will only sweep out the required areas.
+    // NOTE: The sector number will now divide only the sweeped area, not the entire 360
+    double distances[num_sectors];
+    double furthest_distance = -1; 
+    double angle_of_furthest_distance = -1;
+    
+    double curr_angle;
+    double dist;
+
+    int prev_i, next_i;
+
+    double sweep_angle = DEG2RAD(360 - 2 * RADIUS_BACKWARD);
+    double sector_size = sweep_angle / num_sectors;
+
+    // Rotate to start position
+    move.rotate(sweep_angle / 2 + sector_size, ROT_SPEED);
+
+    // Rotate back the other way to scan to get the minLaserDist around the robot
+    for(int i = 0; i < num_sectors + 2; i++) { // Extra two sectors to account for edges
+        move.rotate(sector_size, -SCAN_ROT_SPEED);
+        ros::spinOnce();
+        distances[i] = minLaserDist; // First and last elements are not considered as candidates
+    }
+
+    // Analyze the distances and pick direction to go
+    for (int i = 1; i < num_sectors + 1; i++){
+        // Calculating the angle of the sector wrt original orientation
+        curr_angle = sweep_angle / 2 - i * sector_size;
+
+        // Compute the neighbourhood average and see if it's a candidate direction
+        dist = (*pick_sector)(i, num_sectors, distances);
+        if (dist > furthest_distance && dist < 1000){
+            furthest_distance = dist;
+
+            // Calculate angle needed to get to desired angle
+            // Currently robot is located at -(sweep_angle / 2 + sector_size) wrt original orientation
+            angle_of_furthest_distance = curr_angle + sweep_angle / 2 + sector_size;
+        }
+    }
+    
+    // Post-processing of the angle
+    if (angle_of_furthest_distance == -1){
+        // If no angles gave valid distances, go back the way it cam
+        angle_of_furthest_distance = DEG2RAD(180); 
+    }
+    else if(angle_of_furthest_distance > DEG2RAD(180)){
+        //e.g 270 degrees -> -90 degrees
+        angle_of_furthest_distance = angle_of_furthest_distance - DEG2RAD(360); 
+    }
+
+    return angle_of_furthest_distance;
+}
