@@ -123,20 +123,20 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void move_to_point(double x1, double y1, double theta1, double x2, double y2){
-    double distance = ((x2 - x1)^2+(y2 - y1)^2)^0.5;
-    double angle = DEG2RAD(atan((y2 - y1)/(x2 - x1));
-    double rotation;
-    if(angle - yaw > 180) {
-        rotation = -(360-(angle - theta1));
-    }
-    else if(angle - yaw < -180) {
-        rotation = -360 - (angle - theta1);
-    }
-    else {
-        rotation = angle - theta1;
-    }
-}
+// void move_to_point(double x1, double y1, double theta1, double x2, double y2){
+//     double distance = ((x2 - x1)^2+(y2 - y1)^2)^0.5;
+//     double angle = DEG2RAD(atan((y2 - y1)/(x2 - x1));
+//     double rotation;
+//     if(angle - yaw > 180) {
+//         rotation = -(360-(angle - theta1));
+//     }
+//     else if(angle - yaw < -180) {
+//         rotation = -360 - (angle - theta1);
+//     }
+//     else {
+//         rotation = angle - theta1;
+//     }
+// }
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
