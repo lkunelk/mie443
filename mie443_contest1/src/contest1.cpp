@@ -78,7 +78,21 @@ void drive(float xd, float yd) {
 
     turn(rotation);
     forward(distance);
+}
 
+void move_to_point(double x1, double y1, double theta1, double x2, double y2){
+    double distance = ((x2 - x1)^2+(y2 - y1)^2)^0.5;
+    double angle = DEG2RAD(atan((y2 - y1)/(x2 - x1));
+    double rotation;
+    if(angle - yaw > 180) {
+        rotation = -(360-(angle - theta1));
+    }
+    else if(angle - yaw < -180) {
+        rotation = -360 - (angle - theta1);
+    }
+    else {
+        rotation = angle - theta1;
+    }
 }
 
 float roatation_to_desired_angle(int N) {
