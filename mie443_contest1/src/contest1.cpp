@@ -8,10 +8,12 @@
 // Running the code: rosrun mie443_contest1 contest1
 
 // Launching real bot: roslaunch turtlebot_bringup minimal.launch
-// Gmapping: roslaunch mie443_contest1 gmapping.launch
+// Gmapping: roslaunch mie443_contest1 gmapping.launch <-- HAVE TO RUN THIS to use laser
 // Visualizing the Gmap: roslaunch turtlebot_rviz_launchers view_navigation.launch
 // Saving the map: rosrun map_server map_saver -f /home/turtlebot
 // Running the code: rosrun mie443_contest1 contest1
+
+// To connect: ssh tuesday@100.65.103.84
 
 #include "ros/ros.h"
 #include <sensor_msgs/LaserScan.h>
