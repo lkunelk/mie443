@@ -105,6 +105,7 @@ int main(int argc, char **argv)
                 ROS_WARN("Moving backwards away from collision zone.");
                 move.forward(-2 * EXPLORE_STEP_SIZE, EXPLORE_SPEED);
                 move.reset_bumped();             
+                ignore_back = false;
                 ROS_INFO("Escaped from collision zone. Resuming operation.");
                 break; // After escaping, it goes back to the scanning state
             }
