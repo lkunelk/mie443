@@ -48,6 +48,7 @@ int main(int argc, char **argv)
             geometry_msgs::Point msg;
             msg.x = grid_x;
             msg.y = grid_y;
+            msg.z = tf::getYaw(robotPose.getRotation());//rotation
             pub.publish(msg);
 
         } catch(tf::TransformException ex) {
