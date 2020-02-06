@@ -3,6 +3,9 @@
 #include <kobuki_msgs/BumperEvent.h>
 #include <math.h>
 
+#define RAD2DEG(rad) ((rad)*180. / M_PI)
+#define SIGN(num) (std::abs(num) / num)
+
 uint8_t bumper[3] = {kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED};
 
 void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &msg)
@@ -29,14 +32,18 @@ class Move{
     }
 
     void forward(double distance, double speed, bool verbose=false){
-        next_update = ros::WallTime::now().toSec() + std::abs(distance) / std::abs(speed);
-        vel.linear.x = speed * std::abs(distance) / distance;
+        bool going_backwards = SIGN(speed) == -1 || SIGN(distance) == -1;
+        next_update = ros::Time::now().toSec() + std::abs(distance) / std::abs(speed);
+        vel.linear.x = speed * SIGN(distance);
         vel.angular.z = 0;
         if (verbose){
             ROS_INFO("Moving %f m, will take %f s, will finish at %f s", distance, std::abs(distance) / std::abs(speed), next_update);
         }
-        while(ros::ok() && ros::WallTime::now().toSec() < next_update){
-            if (is_collision()){
+        while(ros::ok() && ros::Time::now().toSec() < next_update){
+            if (is_collision() && !going_backwards){
+                // Regarding 2nd term: Can still go backwards when bumper pressed
+                ROS_WARN("Collision!");
+                stop(true);
                 bumped = true;
                 break;
             }
@@ -48,16 +55,17 @@ class Move{
         if (std::abs(angle) > 2 * M_PI){
             ROS_WARN("Angle given might be in degrees");
         }
-        next_update = ros::WallTime::now().toSec() + std::abs(angle) / std::abs(speed);
+        next_update = ros::Time::now().toSec() + std::abs(angle) / std::abs(speed);
         vel.linear.x = 0;
-        vel.angular.z = speed * std::abs(angle) / angle;
+        vel.angular.z = speed * SIGN(angle);
 
         if (verbose){
-            ROS_INFO("Rotating %f, will take %f s, will finish at %f s", angle, std::abs(angle) / std::abs(speed), next_update);    
+            ROS_INFO("Rotating %f deg, will take %f s, will finish at %f s", RAD2DEG(angle), std::abs(angle) / std::abs(speed), next_update);    
         }
-        while(ros::ok() && ros::WallTime::now().toSec() < next_update){
+        while(ros::ok() && ros::Time::now().toSec() < next_update){
             if (is_collision()){
                 bumped = true;
+                stop(true);
                 break;
             }
             vel_pub.publish(vel);
@@ -86,6 +94,7 @@ class Move{
     }
 
     bool is_collision(){
+        ros::spinOnce();
         return bumper[kobuki_msgs::BumperEvent::LEFT] == kobuki_msgs::BumperEvent::PRESSED ||
             bumper[kobuki_msgs::BumperEvent::CENTER] == kobuki_msgs::BumperEvent::PRESSED ||
             bumper[kobuki_msgs::BumperEvent::RIGHT] == kobuki_msgs::BumperEvent::PRESSED;

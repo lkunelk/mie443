@@ -1,13 +1,15 @@
 // PLAN B CODE
-// Idea: Robot SCANS for direction of greatest distance. Then it EXPLORES in that direction.
-//      ^ Two phases: Scanning (where the robot rotates) and Exploring (where the robot moves)
+// Idea: Robot SCANS for direction of greatest distance. Then it TRAVELS in that direction.
+//      ^ Two States: Scanning (where the robot rotates) and Traveling (where the robot moves)
 
 // Launching simulation bot: roslaunch mie443_contest1 turtlebot_world.launch world:=1
 // Gmapping in Sim: roslaunch turtlebot_gazebo gmapping_demo.launch
+// Visualizing the Gmap: roslaunch turtlebot_rviz_launchers view_navigation.launch
 // Running the code: rosrun mie443_contest1 contest1
 
 // Launching real bot: roslaunch turtlebot_bringup minimal.launch
 // Gmapping: roslaunch mie443_contest1 gmapping.launch
+// Visualizing the Gmap: roslaunch turtlebot_rviz_launchers view_navigation.launch
 // Saving the map: rosrun map_server map_saver -f /home/turtlebot
 // Running the code: rosrun mie443_contest1 contest1
 
@@ -27,8 +29,9 @@
 
 // Scanning constants
 #define  SCAN_ROT_SPEED 0.5
+#define  RADIUS_BACKWARD 75 // Deviation (degrees) from 180 degrees that is considered back 
 
-// Exploration constants
+// Traveling constants
 #define  NUM_SECTORS 12 // Number of sectors to use to find the direction of greatest distance
 #define  EXPLORE_SPEED 0.1 // Speed of the forward exploration in m/s
 #define  EXPLORE_STEP_SIZE 0.1 // Size of each step forward in meters
@@ -39,6 +42,81 @@
 // Operational variables
 float minLaserDist = std::numeric_limits<float>::infinity();
 int32_t nLasers = 0, desiredNLasers = 0, desiredAngle = 5;
+
+// Function Definitions
+void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg);
+double full_scan(int num_sectors, Move move, bool ignore_back);
+double forward_scan(int num_sectors, Move move, bool _);
+
+// Function Declarations
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "image_listener");
+    ros::NodeHandle nh;
+    ros::Subscriber laser_sub = nh.subscribe("scan", 10, &laserCallback);
+
+    Move move(nh);
+
+    // contest count down timer
+    std::chrono::time_point<std::chrono::system_clock> start;
+    start = std::chrono::system_clock::now();
+    uint64_t secondsElapsed = 0;
+
+    // Other variables
+    //ros::Rate loop_rate(10);
+    double angle;
+    int steps;
+    bool ignore_back = false;
+
+    // TurtleBot runs until timer runs out
+    while (ros::ok() && secondsElapsed <= 480)
+    {
+        // State 1: Scanning
+        ROS_INFO("SCANNING");
+        if (!ignore_back){ // Don't ignore back on first scan
+            angle = full_scan(NUM_SECTORS, move, ignore_back);
+            ignore_back = true;
+        }
+        else{
+            angle = forward_scan(NUM_SECTORS, move, false);
+        }
+        move.rotate(angle, ROT_SPEED, true);
+
+        // State 2: Travelling
+        ROS_INFO("TRAVELLING");
+        steps = 0;
+        ros::spinOnce();
+        while(minLaserDist > CLOSE_THRESH){
+            move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
+            // Sweeping along the way, like a broom
+            // if (steps % SWEEP_INTERVAL == 0){
+            //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
+            //     move.rotate(-2 * SWEEP_RADIUS, ROT_SPEED);
+            //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
+            // }
+
+            // The last thing to do is to update the timer.
+            secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count();
+            if (secondsElapsed > 480 || !ros::ok()){
+                break;
+            }
+            else if(move.is_bumped()){
+                // Move backward. Hopefully won't bump into something while going forward
+                ROS_WARN("Moving backwards away from collision zone.");
+                move.forward(-2 * EXPLORE_STEP_SIZE, EXPLORE_SPEED);
+                move.reset_bumped();             
+                ROS_INFO("Escaped from collision zone. Resuming operation.");
+                break; // After escaping, it goes back to the scanning state
+            }
+            steps++;
+            ros::spinOnce();
+
+        }
+    }
+    ROS_INFO("RUN COMPLETE.")
+
+    return 0;
+}
 
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
@@ -63,45 +141,8 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
     }
 }
 
-double get_angle_of_furthest_distance(int num_sectors, Move move){
-    //Returns angle to rotate from current position toward the direction of furthest distance
-    double furthest_distance = -1;
-    double angle_of_furthest_distance = -1;
-    
-    double curr_angle;
 
-    // Scanning the surrounding of the robot
-    for(int i = 1; i <= num_sectors; i++) {
-        // Rotate and scan
-        move.rotate(DEG2RAD(360) / num_sectors, SCAN_ROT_SPEED);
-        curr_angle = i * DEG2RAD(360) / num_sectors;
-        ros::spinOnce();
-
-        // Analyze the laser distance and decide if its is a candidate direction to go
-        if(minLaserDist > furthest_distance && minLaserDist < 1000 
-            && !(RAD2DEG(curr_angle) < 200 && RAD2DEG(curr_angle) > 160))   { 
-            //Second condition to ignore inf. 
-            //Third condition to avoid going back the way it came.
-            
-            furthest_distance = minLaserDist;
-            angle_of_furthest_distance = curr_angle;
-        }
-    }
-
-    // Post-processing of the angle
-    if (angle_of_furthest_distance == -1){
-        // If no angles gave valid distances, go back the way it cam
-        angle_of_furthest_distance = DEG2RAD(180); 
-    }
-    else if(angle_of_furthest_distance > DEG2RAD(180)){
-        //e.g 270 degrees -> -90 degrees
-        angle_of_furthest_distance = angle_of_furthest_distance - DEG2RAD(360); 
-    }
-
-    return angle_of_furthest_distance;
-}
-
-double get_angle_of_furthest_distance2(int num_sectors, Move move){
+double full_scan(int num_sectors, Move move, bool ignore_back){
     // Returns angle to rotate from current position toward the direction of furthest distance
     // This time, it is based on the surroundings sectors as well
     double distances[num_sectors];
@@ -125,7 +166,8 @@ double get_angle_of_furthest_distance2(int num_sectors, Move move){
         curr_angle = (i + 1) * DEG2RAD(360) / num_sectors;
         
         // If the angle corresponding to the sector is not in the backward section
-        if(!(RAD2DEG(curr_angle) < 200 && RAD2DEG(curr_angle) > 160)){
+        if(!(RAD2DEG(curr_angle) < 180 + RADIUS_BACKWARD
+             && RAD2DEG(curr_angle) > 180 - RADIUS_BACKWARD) || !ignore_back){
             // Compute the indices of the array to be analyzed 
             next_i = (i + 1) % num_sectors;
             prev_i = i - 1;
@@ -137,11 +179,8 @@ double get_angle_of_furthest_distance2(int num_sectors, Move move){
                 furthest_distance = average_dist;
                 angle_of_furthest_distance = curr_angle;
             }
-
-            ROS_INFO("Angle: %f, Avg: %f", curr_angle, average_dist);
         }
     }
-    ROS_INFO("Chose %f", angle_of_furthest_distance);
     // Post-processing of the angle
     if (angle_of_furthest_distance == -1){
         // If no angles gave valid distances, go back the way it cam
@@ -155,58 +194,58 @@ double get_angle_of_furthest_distance2(int num_sectors, Move move){
     return angle_of_furthest_distance;
 }
 
-int main(int argc, char **argv)
-{
-    ros::init(argc, argv, "image_listener");
-    ros::NodeHandle nh;
-    ros::Subscriber laser_sub = nh.subscribe("scan", 10, &laserCallback);
+double forward_scan(int num_sectors, Move move, bool _){
+    // Returns angle to rotate from current position toward the direction of furthest distance
+    // This time, it is based on the surroundings sectors as well.
+    // Also, it will only sweep out the required areas.
+    // NOTE: The sector number will now divide only the sweeped area, not the entire 360
+    double distances[num_sectors];
+    double furthest_distance = -1; 
+    double angle_of_furthest_distance = -1;
+    
+    double curr_angle;
+    double average_dist;
 
-    Move move(nh);
+    int prev_i, next_i;
 
-    // contest count down timer
-    std::chrono::time_point<std::chrono::system_clock> start;
-    start = std::chrono::system_clock::now();
-    uint64_t secondsElapsed = 0;
+    double sweep_angle = DEG2RAD(360 - 2 * RADIUS_BACKWARD);
+    double sector_size = sweep_angle / num_sectors;
 
-    // Other variables
-    //ros::Rate loop_rate(10);
-    double angle;
-    int steps;
+    // Rotate to start position
+    move.rotate(sweep_angle / 2 + sector_size, ROT_SPEED);
 
-    // TurtleBot runs until timer runs out
-    while (ros::ok() && secondsElapsed <= 480)
-    {
-        // Phase 1: Scanning
-        angle = get_angle_of_furthest_distance2(NUM_SECTORS, move);
-        move.rotate(angle, ROT_SPEED, false);
-
-        // Phase 2: Exploring
-        steps = 0;
+    // Rotate back the other way to scan to get the minLaserDist around the robot
+    for(int i = 0; i < num_sectors + 2; i++) { // Extra two sectors to account for edges
+        move.rotate(sector_size, -SCAN_ROT_SPEED);
         ros::spinOnce();
-        while(minLaserDist > CLOSE_THRESH){
-            move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
-            // Sweeping along the way, like a broom
-            // if (steps % SWEEP_INTERVAL == 0){
-            //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
-            //     move.rotate(-2 * SWEEP_RADIUS, ROT_SPEED);
-            //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
-            // }
-
-            // The last thing to do is to update the timer.
-            secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count();
-            if (secondsElapsed > 480 || !ros::ok()){
-                break;
-            }
-            else if(move.is_bumped()){
-                // Move backward 
-                move.forward(-2 * EXPLORE_STEP_SIZE, EXPLORE_SPEED);
-                move.reset_bumped(); // Hopefully won't bump into something while going forward
-            }
-            steps++;
-            ros::spinOnce();
-
-        }
+        distances[i] = minLaserDist; // First and last elements are not considered as candidates
     }
 
-    return 0;
+    // Analyze the distances and pick direction to go
+    for (int i = 1; i < num_sectors + 1; i++){
+        // Calculating the angle of the sector wrt original orientation
+        curr_angle = sweep_angle / 2 - i * sector_size;
+
+        // Compute the neighbourhood average and see if it's a candidate direction
+        average_dist = (distances[i - 1] + distances[i] + distances[i + 1]) / 3;
+        if (average_dist > furthest_distance && average_dist < 1000){
+            furthest_distance = average_dist;
+
+            // Calculate angle needed to get to desired angle
+            // Currently robot is located at -(sweep_angle / 2 + sector_size) wrt original orientation
+            angle_of_furthest_distance = curr_angle + sweep_angle / 2 + sector_size;
+        }
+    }
+    
+    // Post-processing of the angle
+    if (angle_of_furthest_distance == -1){
+        // If no angles gave valid distances, go back the way it cam
+        angle_of_furthest_distance = DEG2RAD(180); 
+    }
+    else if(angle_of_furthest_distance > DEG2RAD(180)){
+        //e.g 270 degrees -> -90 degrees
+        angle_of_furthest_distance = angle_of_furthest_distance - DEG2RAD(360); 
+    }
+
+    return angle_of_furthest_distance;
 }
