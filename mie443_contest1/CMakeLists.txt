@@ -14,11 +14,16 @@ find_package(catkin REQUIRED COMPONENTS
 	sensor_msgs
 	kobuki_msgs
 	nav_msgs
-	tf)
+	tf
+	message_generation
+	)
 
-generate_messages(DEPENDENCIES sensor_msgs kobuki_msgs)
+generate_messages(DEPENDENCIES sensor_msgs kobuki_msgs std_msgs)
 
-catkin_package()
+catkin_package(
+	CATKIN_DEPENDS message_runtime
+)
+
 
 include_directories(include ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 

@@ -1,6 +1,18 @@
 // C++ program to find the shortest path between 
 // a given source cell to a destination cell. 
 #include <bits/stdc++.h> 
+#include <ros/console.h>
+#include "ros/ros.h"
+#include "std_msgs/Int16.h"
+#include <geometry_msgs/Twist.h>
+#include <kobuki_msgs/BumperEvent.h>
+#include <sensor_msgs/LaserScan.h>
+#include<nav_msgs/Odometry.h>
+#include<tf/transform_datatypes.h>
+
+
+#include <stdio.h>
+#include <cmath>
 using namespace std; 
 
 //To store matrix cell cordinates 
@@ -160,8 +172,14 @@ vector<queueNode>  BFS(int mat[], int numRow, int numCol, Point src)
 } 
 
 // Driver program to test above function 
-int main() 
+int main(int argc, char **argv) 
 { 
+    ROS_INFO_STREAM("Starting!");
+    ros::init(argc, argv, "yuxiang");
+    ros::NodeHandle n;
+    ros::Publisher coord_pub = n.advertise<std_msgs::Int16>("coord/x", 1000);
+    ros::Publisher coord_pub_2 = n.advertise<std_msgs::Int16>("coord/y", 1000);
+
     int ROW = 8;
     int COL = 7;
 	int mat[convert2Dto1D(ROW, COL, COL) - 1] = 
@@ -188,6 +206,14 @@ int main()
 	// 	cout << "Shortest Path is " << dist ; 
 	// else
 	// 	cout << "Shortest Path doesn't exist"; 
+
+    std_msgs::Int16 msgX;
+    std_msgs::Int16 msgY;
+
+    msgX.data = curr.pt.x;
+    msgY.data = curr.pt.y;
+    coord_pub.publish(msgX);
+    coord_pub.publish(msgY);
 
 	return 0; 
 } 
