@@ -181,7 +181,8 @@ int main()
 	vector<queueNode> path = BFS(mat, ROW, COL, source); 
 
     printpath(path);
-
+    queueNode curr = path[path.size() - 1]; 
+    cout << curr.pt.x << curr.pt.y;
 
 	// if (dist != INT_MAX) 
 	// 	cout << "Shortest Path is " << dist ; 
