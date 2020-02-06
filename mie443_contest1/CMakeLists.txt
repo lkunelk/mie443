@@ -28,6 +28,3 @@ target_link_libraries(contest1 ${catkin_LIBRARIES} ${OpenCV_LIB})
 
 add_executable(grid_position src/grid_position.cpp)
 target_link_libraries(grid_position ${catkin_LIBRARIES})
-
-add_executable(world_position src/world_position.cpp)
-target_link_libraries(world_position ${catkin_LIBRARIES})
