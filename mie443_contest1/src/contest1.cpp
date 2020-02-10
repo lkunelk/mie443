@@ -37,6 +37,8 @@ Visualizing the Gmap
     roslaunch turtlebot_rviz_launchers view_navigation.launch
 Saving the map
     rosrun map_server map_saver -f /home/turtlebot
+    rosrun map_server map_saver -f ./map
+
 Running the code
     rosrun mie443_contest1 contest1 
 */
