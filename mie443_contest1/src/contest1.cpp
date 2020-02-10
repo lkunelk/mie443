@@ -106,9 +106,6 @@ int main(int argc, char **argv)
     // TurtleBot runs until timer runs out
     while (ros::ok() && secondsElapsed <= 480)
     {
-        // Reloop: if CLOSE_THRESH then pick direction opposite of minLaserDist
-        //if minLaserDist < within +-/45 degree, do a curved movement
-
 
         // State 1: Scanning
         ROS_INFO("SCANNING");
@@ -131,11 +128,6 @@ int main(int argc, char **argv)
             //  the collision will be handled below.
             move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
 
-            // TODO: fill in angle
-            if(minLaserDist < CLOSE_THRESH){
-                angle_of_interest = rotateToAvoidObstacle();
-                move.rotate(DEG2RAD(angle_of_interest), ROT_SPEED, false);
-            }
 
 
             // Sweeping along the way, like a broom
@@ -165,8 +157,11 @@ int main(int argc, char **argv)
             ros::spinOnce(); // To update minLaserDist (for the while loop condition)
         }
 
-
-        rotateToAvoidObstacle();
+        // Reloop: if CLOSE_THRESH then pick direction opposite of minLaserDist
+        //if minLaserDist < within +-/25 degree, do a rotation away from the obstacle
+        angle_of_interest = rotateToAvoidObstacle();
+        move.rotate(DEG2RAD(angle_of_interest), ROT_SPEED, false);
+        move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
     }
     ROS_INFO("RUN COMPLETE.");
 
@@ -222,7 +217,7 @@ double rotateToAvoidObstacle(){
         ROS_INFO("move right by %f", angleDifference / 2 - closestObjectAngle);
         return angleDifference / 2 - closestObjectAngle;
     } else {
-        ROS_INFO("move left by %f", - closestObjectAngle);
+        ROS_INFO("move left by %f",  -1 * angleDifference / 2 + closestObjectAngle);
         return   -1 * angleDifference / 2 + closestObjectAngle;
     }
 }

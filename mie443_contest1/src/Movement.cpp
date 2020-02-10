@@ -59,6 +59,8 @@ class Move{
         // Angle is in radians, speed is in radians per second
         if (std::abs(angle) > 2 * M_PI){
             ROS_WARN("Angle given might be in degrees");
+            stop(true);
+            return;
         }
 
         next_update = ros::Time::now().toSec() + std::abs(angle) / std::abs(speed);
