@@ -69,7 +69,8 @@ Running the code
 
 // Operational variables
 float minLaserDist = std::numeric_limits<float>::infinity();
-int32_t nLasers = 0, desiredNLasers = 0, desiredAngle = 25, angleDifference;
+int32_t nLasers = 0, desiredNLasers = 0, desiredAngle = 35;
+float angleDifference = 0;
 double closestObjectAngle;
 
 
@@ -117,18 +118,27 @@ int main(int argc, char **argv)
         // State 2: Travelling
         ROS_INFO("TRAVELLING");
         steps = 1;
+        int SCALE_FACTOR_REMOVE = 1;
         ros::spinOnce(); // To update minLaserDist
         while(minLaserDist > CLOSE_THRESH){
             // Periodic sweeping (not scanning)
-            if (steps % 10 == 0){
+            if (steps % 20 == 0){
                 move.rotate(DEG2RAD(360), ROT_SPEED, false);
             }
             
             // If collide during the loop inside the forward function, that loop will break and
             //  the collision will be handled below.
-            move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
 
+            //
+            move.forward(EXPLORE_STEP_SIZE*SCALE_FACTOR_REMOVE, EXPLORE_SPEED);
 
+            if(minLaserDist < CLOSE_THRESH){
+                // Reloop: if CLOSE_THRESH then pick direction opposite of minLaserDist
+                //if minLaserDist < within +-/25 degree, do a rotation away from the obstacle
+                angle_of_interest = rotateToAvoidObstacle();
+                move.rotate(DEG2RAD(angle_of_interest), ROT_SPEED, false);
+                move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
+            }
 
             // Sweeping along the way, like a broom
             // if (steps % SWEEP_INTERVAL == 0){
@@ -156,12 +166,6 @@ int main(int argc, char **argv)
             steps = steps + 1;
             ros::spinOnce(); // To update minLaserDist (for the while loop condition)
         }
-
-        // Reloop: if CLOSE_THRESH then pick direction opposite of minLaserDist
-        //if minLaserDist < within +-/25 degree, do a rotation away from the obstacle
-        angle_of_interest = rotateToAvoidObstacle();
-        move.rotate(DEG2RAD(angle_of_interest), ROT_SPEED, false);
-        move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
     }
     ROS_INFO("RUN COMPLETE.");
 
@@ -174,7 +178,7 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
     minLaserDist = std::numeric_limits<float>::infinity();
     uint32_t minLaserIndex;
-    angleDifference = msg->angle_max - msg->angle_min;
+    angleDifference = RAD2DEG(msg->angle_max - msg->angle_min);
     nLasers = (msg->angle_max - msg->angle_min) / msg->angle_increment;
     desiredNLasers = DEG2RAD(desiredAngle) / msg->angle_increment;
 
@@ -205,20 +209,20 @@ void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
     // Positive is left
     closestObjectAngle = RAD2DEG(msg->angle_min + minLaserIndex *  msg->angle_increment);
     if (closestObjectAngle < RAD2DEG(msg->angle_max) - RAD2DEG(msg->angle_min)) {
-        ROS_INFO("Angle of closest object: %f", closestObjectAngle);
+        ROS_INFO("Angle of closest object: %f and diff: %f", closestObjectAngle, angleDifference);
     }
-
-
-
 }
 
 double rotateToAvoidObstacle(){
+    float rotationAngle =  closestObjectAngle - angleDifference / 2;
+
     if (closestObjectAngle > 0) {
-        ROS_INFO("move right by %f", angleDifference / 2 - closestObjectAngle);
-        return angleDifference / 2 - closestObjectAngle;
+        ROS_INFO("move right by %f", rotationAngle);
+        return -1 * rotationAngle;
     } else {
-        ROS_INFO("move left by %f",  -1 * angleDifference / 2 + closestObjectAngle);
-        return   -1 * angleDifference / 2 + closestObjectAngle;
+        float rotationAngle = rotationAngle;
+        ROS_INFO("move left by %f",  rotationAngle);
+        return rotationAngle;
     }
 }
 
