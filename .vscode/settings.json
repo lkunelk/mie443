@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "bitset": "cpp",
+        "list": "cpp",
+        "iostream": "cpp",
+        "tuple": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "forward_list": "cpp",
+        "vector": "cpp"
+    }
+}

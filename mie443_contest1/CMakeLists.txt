@@ -14,17 +14,25 @@ find_package(catkin REQUIRED COMPONENTS
 	sensor_msgs
 	kobuki_msgs
 	nav_msgs
-	tf)
+	tf
+	message_generation
+	)
 
-generate_messages(DEPENDENCIES sensor_msgs kobuki_msgs)
+generate_messages(DEPENDENCIES sensor_msgs kobuki_msgs std_msgs)
 
-catkin_package()
+catkin_package(
+	CATKIN_DEPENDS message_runtime
+)
+
 
 include_directories(include ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
 # add the publisher example
 add_executable(contest1 src/contest1.cpp)
 target_link_libraries(contest1 ${catkin_LIBRARIES} ${OpenCV_LIB})
+
+add_executable(arrays src/arrays.cpp)
+target_link_libraries(arrays ${catkin_LIBRARIES})
 
 add_executable(grid_position src/grid_position.cpp)
 target_link_libraries(grid_position ${catkin_LIBRARIES})
