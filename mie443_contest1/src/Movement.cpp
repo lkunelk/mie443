@@ -69,7 +69,7 @@ class Move{
         }
     }
 
-    void rotate(double angle, double speed, bool verbose=false, double adjustment=1){
+    void rotate(double angle, double speed, bool verbose=false, double adjustment=1.2){
         /// This rotate is based on time to determine how much to rotate
         
         // Angle is in radians, speed is in radians per second
