@@ -58,7 +58,7 @@ class Move{
         }
 
         while(ros::ok() && ros::Time::now().toSec() < next_update){
-            if (is_collision() && !going_backwards){
+            if (is_collision() > -1 && !going_backwards){
                 // Regarding 2nd term: Can still go backwards when bumper pressed
                 ROS_WARN("Collision!");
                 stop(true);
@@ -89,7 +89,7 @@ class Move{
         }
 
         while(ros::ok() && ros::Time::now().toSec() < next_update){
-            if (is_collision()){
+            if (is_collision() > -1){
                 ROS_WARN("Collision!");
                 stop(true);
                 bumped = true;
@@ -132,7 +132,7 @@ class Move{
         }
 
         do{
-            if (is_collision()){
+            if (is_collision() > -1){
                 ROS_WARN("Collision!");
                 stop(true);
                 bumped = true;
@@ -177,13 +177,13 @@ class Move{
         if(bumper[kobuki_msgs::BumperEvent::LEFT] == kobuki_msgs::BumperEvent::PRESSED) {
             return kobuki_msgs::BumperEvent::LEFT;
         }
-        if(bumper[kobuki_msgs::BumperEvent::CENTER] == kobuki_msgs::BumperEvent::PRESSED) {
-            return kobuki_msgs::BumperEvent::CENTER;
-        }
         if(bumper[kobuki_msgs::BumperEvent::RIGHT] == kobuki_msgs::BumperEvent::PRESSED) {
             return kobuki_msgs::BumperEvent::RIGHT;
         }
-        return 0;
+        if(bumper[kobuki_msgs::BumperEvent::CENTER] == kobuki_msgs::BumperEvent::PRESSED) {
+            return kobuki_msgs::BumperEvent::CENTER;
+        }
+        return -1;
     }
 
 };

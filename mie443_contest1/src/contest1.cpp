@@ -139,8 +139,8 @@ int main(int argc, char **argv)
             }
             
             // State 3: Collision ------------------------------
-            int bump = move.is_bumped();
-            if(bump){
+            int bump = move.is_collision();
+            if(bump > -1){
                 // Move backward. Hopefully won't bump into something while going forward
                 ROS_WARN("Moving backwards away from collision zone.");
                 move.forward(-backup_coeff * TRAVEL_STEP_SIZE, TRAVEL_SPEED);
