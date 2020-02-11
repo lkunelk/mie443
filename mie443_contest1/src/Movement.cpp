@@ -1,6 +1,8 @@
 #include "ros/ros.h"
+#include <tf/tf.h>
 #include <geometry_msgs/Twist.h>
 #include <kobuki_msgs/BumperEvent.h>
+#include <nav_msgs/Odometry.h>
 #include <math.h>
 
 #define RAD2DEG(rad) ((rad)*180. / M_PI)
@@ -8,6 +10,7 @@
 #define SIGN(num) (std::abs(num) / num)
 
 uint8_t bumper[3] = {kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED};
+double curr_yaw = 0;
 
 void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &msg)
 {
@@ -15,10 +18,19 @@ void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &msg)
     bumper[msg->bumper] = msg->state;
 }
 
+void odomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+    curr_yaw = tf::getYaw(msg->pose.pose.orientation);
+    if (curr_yaw < 0)
+        curr_yaw += 2 * M_PI;
+    // ROS_INFO("curr yaw %f", curr_yaw);
+}
+
 class Move{
     private:
         ros::Publisher vel_pub;
         ros::Subscriber bumper_sub;
+        ros::Subscriber odom_sub;
         geometry_msgs::Twist vel;
 
         double next_update; // Time (s) when the current movement will be stopped
@@ -28,6 +40,7 @@ class Move{
     Move(ros::NodeHandle nh){
         vel_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel_mux/input/teleop", 1);
         bumper_sub = nh.subscribe("mobile_base/events/bumper", 10, &bumperCallback);
+        odom_sub = nh.subscribe("odom", 10, &odomCallback);
         reset_bumped();
         ROS_INFO("Mover initiated.");
     }
@@ -56,13 +69,17 @@ class Move{
         }
     }
 
-    void rotate_old(double angle, double speed, bool verbose=false){
+    void rotate(double angle, double speed, bool verbose=false, double adjustment=1){
+        /// This rotate is based on time to determine how much to rotate
+        
         // Angle is in radians, speed is in radians per second
         if (std::abs(angle) > 2 * M_PI){
-            ROS_WARN("Angle given might be in degrees");
+            ROS_ERROR("Angle given might be in degrees. ALSO DOESN'T SUPPORT MORE THAN 360 degrees");
         }
 
-        next_update = ros::Time::now().toSec() + std::abs(angle) / std::abs(speed);
+        int direction = SIGN(angle);
+
+        next_update = ros::Time::now().toSec() + std::abs(adjustment * angle) / std::abs(speed);
 
         vel.linear.x = 0;
         vel.angular.z = speed * SIGN(angle);
@@ -79,10 +96,11 @@ class Move{
                 break;
             }
             vel_pub.publish(vel);
+            ros::spinOnce();
         }
     }
 
-    void rotate(double angle, double speed, bool verbose=false){
+    void rotate_new(double angle, double speed, bool verbose=false){
         /// This rotate is based on odometry topic to determine how much to rotate
 
         // Angle is in radians, speed is in radians per second
@@ -94,6 +112,7 @@ class Move{
         double start_yaw = curr_yaw;
         double next_angle = curr_yaw + angle;
         bool wrap = false;
+        bool wrapped_around = false; // To account for the 360 degrees turn
         double yaw_converted;
 
         if (next_angle >= DEG2RAD(360)){
@@ -109,7 +128,7 @@ class Move{
         vel.angular.z = speed * SIGN(angle);
 
         if (verbose){
-            ROS_INFO("Rotating %f deg, will take %f s, will finish at %f s", RAD2DEG(angle), std::abs(angle) / std::abs(speed), next_update);    
+            ROS_INFO("Rotating %f deg (%f -> %f), will take %f s.", RAD2DEG(angle), RAD2DEG(start_yaw), RAD2DEG(next_angle), std::abs(angle) / std::abs(speed));    
         }
 
         do{
@@ -121,11 +140,12 @@ class Move{
             }
             vel_pub.publish(vel);
             ros::spinOnce();
-            if (wrap && curr_yaw * direction >= start_yaw * direction){
+            if (wrap && curr_yaw * direction >= start_yaw * direction && !wrapped_around){
                 yaw_converted = curr_yaw - direction * DEG2RAD(360);
             }
             else{
                 yaw_converted = curr_yaw;
+                wrapped_around = true;
             }
         }while(ros::ok() && yaw_converted * direction < next_angle * direction);
     }
@@ -147,6 +167,7 @@ class Move{
     double is_bumped(){
         return bumped;
     }
+
     void reset_bumped(){
         bumped = false;
     }
