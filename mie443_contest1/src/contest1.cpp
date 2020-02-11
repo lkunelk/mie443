@@ -117,7 +117,8 @@ int main(int argc, char **argv)
         ros::spinOnce(); // To update minLaserDist
         while(minLaserDist > CLOSE_THRESH){
             // Periodic sweeping (not scanning)
-            if (steps % 10 == 0){
+            if (steps % 20 == 0){
+                ROS_INFO("Periodic Sweeping");
                 move.rotate(DEG2RAD(360), ROT_SPEED, false);
             }
             
