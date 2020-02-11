@@ -20,6 +20,8 @@ void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &msg)
 void odomCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
     curr_yaw = tf::getYaw(msg->pose.pose.orientation);
+    if (curr_yaw < 0)
+        curr_yaw += 2 * M_PI;
     ROS_INFO("curr yaw %f", curr_yaw);
 }
 
