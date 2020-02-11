@@ -20,5 +20,5 @@ rosrun mie443_contest1 contest1
 
 Saving the map
 ```
-rosrun map_server map_saver -f /home/turtlebot
+rosrun map_server map_saver -f ./map
 ```
