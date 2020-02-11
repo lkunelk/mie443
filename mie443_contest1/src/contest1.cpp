@@ -100,8 +100,10 @@ int main(int argc, char **argv)
     uint64_t secondsElapsed = 0;
 
     // TurtleBot runs until timer runs out
+    double backup_coeff;
     while (ros::ok() && secondsElapsed <= 480)
     {
+        backup_coeff = 1.5;
         // State 1: Scanning ------------------------------
         ROS_INFO("SCANNING");
         angle_of_interest = full_scan(NUM_SECTORS, move, pick_line, ignore_back);
@@ -117,7 +119,7 @@ int main(int argc, char **argv)
             // Periodic sweeping (not scanning)
             if (steps % 20 == 0){
                 ROS_INFO("Periodic Sweeping");
-                move.rotate(DEG2RAD(360), ROT_SPEED, false);
+                move.rotate(DEG2RAD(360), ROT_SPEED, true);
             }
             
             // If collide during the loop inside the forward function, that loop will break and
@@ -140,9 +142,10 @@ int main(int argc, char **argv)
             if(move.is_bumped()){
                 // Move backward. Hopefully won't bump into something while going forward
                 ROS_WARN("Moving backwards away from collision zone.");
-                move.forward(-2 * TRAVEL_STEP_SIZE, TRAVEL_SPEED);
+                move.forward(-backup_coeff * TRAVEL_STEP_SIZE, TRAVEL_SPEED);
                 move.reset_bumped();             
                 ignore_back = false; // After a collision, the robot should consider moving back the way it came
+                backup_coeff = std::max(backup_coeff + 0.5, 4.0);
                 ROS_INFO("Escaped from collision zone. Resuming operation.");
                 break; // After escaping, it goes back to the Scanning state
             }

@@ -69,7 +69,7 @@ class Move{
         }
     }
 
-    void rotate_old(double angle, double speed, bool verbose=false, double adjustment=1){
+    void rotate(double angle, double speed, bool verbose=false, double adjustment=1){
         /// This rotate is based on time to determine how much to rotate
         
         // Angle is in radians, speed is in radians per second
@@ -100,7 +100,7 @@ class Move{
         }
     }
 
-    void rotate(double angle, double speed, bool verbose=false){
+    void rotate_new(double angle, double speed, bool verbose=false){
         /// This rotate is based on odometry topic to determine how much to rotate
 
         // Angle is in radians, speed is in radians per second
@@ -112,6 +112,7 @@ class Move{
         double start_yaw = curr_yaw;
         double next_angle = curr_yaw + angle;
         bool wrap = false;
+        bool wrapped_around = false; // To account for the 360 degrees turn
         double yaw_converted;
 
         if (next_angle >= DEG2RAD(360)){
@@ -127,7 +128,7 @@ class Move{
         vel.angular.z = speed * SIGN(angle);
 
         if (verbose){
-            ROS_INFO("Rotating %f deg, will take %f s, will finish at %f s", RAD2DEG(angle), std::abs(angle) / std::abs(speed), next_update);    
+            ROS_INFO("Rotating %f deg (%f -> %f), will take %f s.", RAD2DEG(angle), RAD2DEG(start_yaw), RAD2DEG(next_angle), std::abs(angle) / std::abs(speed));    
         }
 
         do{
@@ -139,11 +140,12 @@ class Move{
             }
             vel_pub.publish(vel);
             ros::spinOnce();
-            if (wrap && curr_yaw * direction >= start_yaw * direction){
+            if (wrap && curr_yaw * direction >= start_yaw * direction && !wrapped_around){
                 yaw_converted = curr_yaw - direction * DEG2RAD(360);
             }
             else{
                 yaw_converted = curr_yaw;
+                wrapped_around = true;
             }
         }while(ros::ok() && yaw_converted * direction < next_angle * direction);
     }
