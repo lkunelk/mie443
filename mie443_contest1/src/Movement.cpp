@@ -9,7 +9,6 @@
 #define SIGN(num) (std::abs(num) / num)
 
 uint8_t bumper[3] = {kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED};
-float curr_yaw = 0;
 
 void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &msg)
 {
@@ -33,6 +32,7 @@ class Move{
         geometry_msgs::Twist vel;
 
         double next_update; // Time (s) when the current movement will be stopped
+        double curr_yaw = 0;
         bool bumped; //Whether or not a collision has occured
 
     public:
@@ -81,13 +81,12 @@ class Move{
         //next_update = ros::Time::now().toSec() + std::abs(angle) / std::abs(speed);
         next_angle = curr_yaw + angle;
         start_yaw = curr_yaw;
-        if next_angle > DEG2RAD(360){
+        if (next_angle > DEG2RAD(360)){
             next_angle = next_angle - DEG2RAD(360);
-            wrap = true;
+            wrap_up = true;
         }
-        else if next_angle < 0{
-            next_angle = next_angle + DEG2RAD(360);
-            wrap = true
+        else if (next_angle < 0){
+            wrap_down = true;
         }
 
         vel.linear.x = 0;
@@ -109,14 +108,18 @@ class Move{
             }
             vel_pub.publish(vel);
             ros::spinOnce();
-            if (wrap && direction * start_yaw < direction * curr_yaw < direction * DEG2RAD(360)){
-                yaw_converted = curr_yaw - 360;
+            if (wrap_up && start_yaw <= curr_yaw && curr_yaw < DEG2RAD(360)){
+                    yaw_converted = curr_yaw - DEG2RAD(360);
+                }
+                else if (wrap_down && curr_yaw > start_yaw){
+                    yaw_converted = curr_yaw - DEG2RAD(360);
+                }
+                else{
+                    yaw_converted = curr_yaw;
+                }
             }
-            else{
-                yaw_converted = curr_yaw
-            }
-        }
     }
+
 
     void stop(bool verbose=false){
         if (verbose){
