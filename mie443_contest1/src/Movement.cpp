@@ -100,6 +100,58 @@ class Move{
         }
     }
 
+    void rotate_imu(double angle, double speed, bool verbose=false){
+        /// This rotate is based on odometry topic to determine how much to rotate
+
+        // Angle is in radians, speed is in radians per second
+        if (std::abs(angle) > 2 * M_PI){
+            ROS_ERROR("Angle given might be in degrees. ALSO DOESN'T SUPPORT MORE THAN 360 degrees");
+        }
+
+        int direction = SIGN(angle);
+        double start_angle = curr_yaw;
+        double next_angle = curr_yaw + angle;
+        double offset = 0;
+
+        if (next_angle >= DEG2RAD(360)){
+            next_angle = next_angle - DEG2RAD(360);
+            offset = DEG2RAD(360) - curr_yaw;
+        }
+        else if (next_angle < 0){
+            next_angle = next_angle + DEG2RAD(360);
+            offset = - curr_yaw - DEG2RAD(1);
+        }
+
+        vel.linear.x = 0;
+        vel.angular.z = speed * SIGN(angle);
+
+        if (verbose){
+            ROS_INFO("Rotating %f deg (%f -> %f), will take %f s.", RAD2DEG(angle), RAD2DEG(start_angle), RAD2DEG(next_angle), std::abs(angle) / std::abs(speed));    
+        }
+
+        while(ros::ok() && direction * convert(curr_yaw + offset) < direction * (next_angle + offset)){
+            if (is_collision()){
+                ROS_WARN("Collision!");
+                stop(true);
+                bumped = true;
+                break;
+            }
+            vel_pub.publish(vel);
+            ros::spinOnce();
+        }
+    }
+
+    double convert(double angle){
+        double converted_angle = angle;
+        if (angle >= DEG2RAD(360)){
+            converted_angle = angle - DEG2RAD(360);
+        }
+        else if (angle < 0){
+            converted_angle = angle + DEG2RAD(360);
+        }
+
+        return converted_angle;
+    }
     void rotate_new(double angle, double speed, bool verbose=false){
         /// This rotate is based on odometry topic to determine how much to rotate
 

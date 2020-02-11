@@ -74,8 +74,44 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     Move move(nh);
 
-    move.rotate(DEG2RAD(360), SCAN_ROT_SPEED, true);
+    //move.rotate(DEG2RAD(360), SCAN_ROT_SPEED, true);
 
+    // Testing the new rotate ---------------------------------------------
+    double curr_yaw = DEG2RAD(2);
+
+    double angle = DEG2RAD(-2);
+
+    int direction = SIGN(angle);
+    double next_angle = curr_yaw + angle;
+    double offset = 0;
+
+    if (next_angle >= DEG2RAD(360)){
+        next_angle = next_angle - DEG2RAD(360);
+        offset = DEG2RAD(360) - curr_yaw;
+    }
+    else if (next_angle < 0){
+        next_angle = next_angle + DEG2RAD(360);
+        offset = - curr_yaw - DEG2RAD(1);
+    }
+
+    for (int i = 0; i < 20; i++){
+
+        ROS_INFO("offset: %f, yaw: %f, converted: %f, next: %f", RAD2DEG(offset), RAD2DEG(curr_yaw), RAD2DEG(move.convert(curr_yaw + offset)), RAD2DEG(next_angle + offset));
+
+        // Simulating real yaw
+        curr_yaw = curr_yaw + direction * DEG2RAD(1);
+        if (curr_yaw >= DEG2RAD(360)){
+            curr_yaw = curr_yaw - DEG2RAD(360);
+        }
+        else if (curr_yaw < 0){
+            curr_yaw = curr_yaw + DEG2RAD(360);
+        }
+
+        if (!(direction * move.convert(curr_yaw + offset) < direction * (next_angle + offset))){
+            ROS_INFO("%f >= %f", RAD2DEG(direction * move.convert(curr_yaw + offset)), RAD2DEG(direction * (next_angle + offset)));
+            break;
+        }
+    }
     return 0;
 }
 
