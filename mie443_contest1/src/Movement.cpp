@@ -4,6 +4,7 @@
 #include <math.h>
 
 #define RAD2DEG(rad) ((rad)*180. / M_PI)
+#define DEG2RAD(deg) ((deg)*M_PI / 180.)
 #define SIGN(num) (std::abs(num) / num)
 
 uint8_t bumper[3] = {kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED};
@@ -55,7 +56,7 @@ class Move{
         }
     }
 
-    void rotate(double angle, double speed, bool verbose=false){
+    void rotate_old(double angle, double speed, bool verbose=false){
         // Angle is in radians, speed is in radians per second
         if (std::abs(angle) > 2 * M_PI){
             ROS_WARN("Angle given might be in degrees");
@@ -79,6 +80,54 @@ class Move{
             }
             vel_pub.publish(vel);
         }
+    }
+
+    void rotate(double angle, double speed, bool verbose=false){
+        /// This rotate is based on odometry topic to determine how much to rotate
+
+        // Angle is in radians, speed is in radians per second
+        if (std::abs(angle) > 2 * M_PI){
+            ROS_ERROR("Angle given might be in degrees. ALSO DOESN'T SUPPORT MORE THAN 360 degrees");
+        }
+
+        int direction = SIGN(angle);
+        double start_yaw = curr_yaw;
+        double next_angle = curr_yaw + angle;
+        bool wrap = false;
+        double yaw_converted;
+
+        if (next_angle >= DEG2RAD(360)){
+            next_angle = next_angle - DEG2RAD(360);
+            wrap = true;
+        }
+        else if (next_angle < 0){
+            next_angle = next_angle + DEG2RAD(360);
+            wrap = true;
+        }
+
+        vel.linear.x = 0;
+        vel.angular.z = speed * SIGN(angle);
+
+        if (verbose){
+            ROS_INFO("Rotating %f deg, will take %f s, will finish at %f s", RAD2DEG(angle), std::abs(angle) / std::abs(speed), next_update);    
+        }
+
+        do{
+            if (is_collision()){
+                ROS_WARN("Collision!");
+                stop(true);
+                bumped = true;
+                break;
+            }
+            vel_pub.publish(vel);
+            ros::spinOnce();
+            if (wrap && curr_yaw * direction >= start_yaw * direction){
+                yaw_converted = curr_yaw - direction * DEG2RAD(360);
+            }
+            else{
+                yaw_converted = curr_yaw;
+            }
+        }while(ros::ok() && yaw_converted * direction < next_angle * direction);
     }
 
     void stop(bool verbose=false){

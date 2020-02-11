@@ -94,3 +94,52 @@ double forward_scan(int num_sectors, Move move, double(*pick_method)(int, int, d
 
     return angle_of_furthest_distance;
 }
+
+void rotate_sim(){
+    // Testing the new rotate ---------------------------------------------
+    double curr_yaw = DEG2RAD(355);
+
+    double angle = DEG2RAD(-5);
+
+    int direction = SIGN(angle);
+    bool wrap = false;
+    double yaw_converted;
+    double start_yaw;
+    double next_angle;
+
+    next_angle = curr_yaw + angle;
+    start_yaw = curr_yaw;
+    if (next_angle >= DEG2RAD(360)){
+        next_angle = next_angle - DEG2RAD(360);
+        wrap = true;
+    }
+    else if (next_angle < 0){
+        next_angle = next_angle + DEG2RAD(360);
+        wrap = true;
+    }
+
+
+    for (int i = 0; i < 20; i++){
+        if (wrap && curr_yaw * direction >= start_yaw * direction){
+            yaw_converted = curr_yaw - direction * DEG2RAD(360);
+        }
+        else{
+            yaw_converted = curr_yaw;
+        }
+
+
+        ROS_INFO("yaw: %f, converted: %f, next: %f", RAD2DEG(curr_yaw), RAD2DEG(yaw_converted), RAD2DEG(next_angle));
+
+        // Simulating real yaw
+        curr_yaw = curr_yaw + direction * DEG2RAD(1);
+        if (curr_yaw >= DEG2RAD(360)){
+            curr_yaw = curr_yaw - DEG2RAD(360);
+        }
+        else if (curr_yaw < 0){
+            curr_yaw = curr_yaw + DEG2RAD(360);
+        }
+        if (!(yaw_converted * direction < next_angle * direction)){
+            break;
+        }
+    }
+}
