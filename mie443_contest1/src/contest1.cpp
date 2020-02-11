@@ -100,10 +100,9 @@ int main(int argc, char **argv)
     uint64_t secondsElapsed = 0;
 
     // TurtleBot runs until timer runs out
-    double backup_coeff;
+    double backup_coeff=1.5;
     while (ros::ok() && secondsElapsed <= 480)
     {
-        backup_coeff = 1.5;
         // State 1: Scanning ------------------------------
         ROS_INFO("SCANNING");
         angle_of_interest = full_scan(NUM_SECTORS, move, pick_line, ignore_back);
@@ -155,6 +154,9 @@ int main(int argc, char **argv)
                 backup_coeff = std::max(backup_coeff + 0.5, 4.0);
                 ROS_INFO("Escaped from collision zone. Resuming operation.");
                 break; // After escaping, it goes back to the Scanning state
+            }
+            else{
+                backup_coeff = 1.5;
             }
             steps = steps + 1;
             ros::spinOnce(); // To update minLaserDist (for the while loop condition)
