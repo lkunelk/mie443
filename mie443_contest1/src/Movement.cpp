@@ -108,10 +108,14 @@ class Move{
             ROS_ERROR("Angle given might be in degrees. ALSO DOESN'T SUPPORT MORE THAN 360 degrees");
         }
 
+        if (std::abs(angle) == DEG2RAD(360)){
+            angle = SIGN(angle) * DEG2RAD(359);
+        }
         int direction = SIGN(angle);
         double start_angle = curr_yaw;
         double next_angle = curr_yaw + angle;
         double offset = 0;
+
 
         if (next_angle >= DEG2RAD(360)){
             next_angle = next_angle - DEG2RAD(360);
