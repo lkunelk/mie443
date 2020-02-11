@@ -69,17 +69,17 @@ class Move{
         }
     }
 
-    void rotate(double angle, double speed, bool verbose=false){
+    void rotate_old(double angle, double speed, bool verbose=false, double adjustment=1){
         /// This rotate is based on time to determine how much to rotate
         
-        int direction = SIGN(angle);
-
         // Angle is in radians, speed is in radians per second
         if (std::abs(angle) > 2 * M_PI){
             ROS_ERROR("Angle given might be in degrees. ALSO DOESN'T SUPPORT MORE THAN 360 degrees");
         }
 
-        next_update = ros::Time::now().toSec() + std::abs(angle) / std::abs(speed);
+        int direction = SIGN(angle);
+
+        next_update = ros::Time::now().toSec() + std::abs(adjustment * angle) / std::abs(speed);
 
         vel.linear.x = 0;
         vel.angular.z = speed * SIGN(angle);
@@ -100,26 +100,27 @@ class Move{
         }
     }
 
-    void rotate2(double angle, double speed, bool verbose=false){
-        int direction = SIGN(angle);
-        bool wrap_up = false, wrap_down = false;
-        double yaw_converted;
-        double start_yaw;
-        double next_angle;
+    void rotate(double angle, double speed, bool verbose=false){
+        /// This rotate is based on odometry topic to determine how much to rotate
+
         // Angle is in radians, speed is in radians per second
         if (std::abs(angle) > 2 * M_PI){
             ROS_ERROR("Angle given might be in degrees. ALSO DOESN'T SUPPORT MORE THAN 360 degrees");
         }
 
-        //next_update = ros::Time::now().toSec() + std::abs(angle) / std::abs(speed);
-        next_angle = curr_yaw + angle;
-        start_yaw = curr_yaw;
-        if (next_angle > DEG2RAD(360)){
+        int direction = SIGN(angle);
+        double start_yaw = curr_yaw;
+        double next_angle = curr_yaw + angle;
+        bool wrap = false;
+        double yaw_converted;
+
+        if (next_angle >= DEG2RAD(360)){
             next_angle = next_angle - DEG2RAD(360);
-            wrap_up = true;
+            wrap = true;
         }
         else if (next_angle < 0){
-            wrap_down = true;
+            next_angle = next_angle + DEG2RAD(360);
+            wrap = true;
         }
 
         vel.linear.x = 0;
@@ -129,10 +130,7 @@ class Move{
             ROS_INFO("Rotating %f deg, will take %f s, will finish at %f s", RAD2DEG(angle), std::abs(angle) / std::abs(speed), next_update);    
         }
 
-        //while(ros::ok() && ros::Time::now().toSec() < next_update){
-        ros::spinOnce();
-        yaw_converted = curr_yaw;
-        while(ros::ok() && direction * yaw_converted < direction * next_angle){
+        do{
             if (is_collision()){
                 ROS_WARN("Collision!");
                 stop(true);
@@ -141,18 +139,14 @@ class Move{
             }
             vel_pub.publish(vel);
             ros::spinOnce();
-            if (wrap_up && start_yaw <= curr_yaw && curr_yaw < DEG2RAD(360)){
-                    yaw_converted = curr_yaw - DEG2RAD(360);
-            }
-            else if (wrap_down && curr_yaw > start_yaw){
-                yaw_converted = curr_yaw - DEG2RAD(360);
+            if (wrap && curr_yaw * direction >= start_yaw * direction){
+                yaw_converted = curr_yaw - direction * DEG2RAD(360);
             }
             else{
                 yaw_converted = curr_yaw;
             }
-        }
+        }while(ros::ok() && yaw_converted * direction < next_angle * direction);
     }
-
 
     void stop(bool verbose=false){
         if (verbose){

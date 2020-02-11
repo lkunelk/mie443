@@ -63,11 +63,11 @@ Running the code
 
 // Traveling constants
 #define  NUM_SECTORS 18 // Number of sectors to use to find the direction of greatest distance
-#define  EXPLORE_SPEED 0.25 // Speed of the forward exploration in m/s
-#define  EXPLORE_STEP_SIZE 0.1 // Size of each step forward in meters 
-#define  CLOSE_THRESH 0.55 // How close to the obstacle in front before scanning again (m)
-// #define  SWEEP_INTERVAL 10 // Sweeps left right after certain number of steps forward
-// #define  SWEEP_RADIUS (M_PI / 6) // How much to sweep side to side
+#define  TRAVEL_SPEED 0.25 // Speed of the forward exploration in m/s
+#define  TRAVEL_SPEED_SLOW 0.1 // Speed of travel when close to obstacles in m/s
+#define  TRAVEL_STEP_SIZE 0.1 // Size of each step forward in meters 
+#define  TRAVEL_STOP_THRESH 0.55 // How close to the obstacle in front before scanning again (m)
+#define  TRAVEL_SLOW_THRESH 0.75 // How close to the obstacle in front before slowing down (m)
 
 // Operational variables
 float minLaserDist = std::numeric_limits<float>::infinity();
@@ -78,14 +78,12 @@ double angle_of_interest; // Angle found in the Scanning state to be travelled i
 int steps; // Stores the number of steps travelled in the Travelling state
 bool ignore_back = false; // Whether or not to exclude the angles behind the bot as angle of interest
 
-
 // Function Declarations
 void laserCallback(const sensor_msgs::LaserScan::ConstPtr &msg);
 double pick_line(int index, int num_sectors, double *distances);
 double pick_sector(int index, int num_sectors, double *distances);
 double full_scan(int num_sectors, Move move, double (*pick_method)(int, int, double*), bool ignore_back);
 double forward_scan(int num_sectors, Move move, double (*pick_method)(int, int, double*), bool _);
-
 
 // Function Definitions
 int main(int argc, char **argv)
@@ -104,18 +102,18 @@ int main(int argc, char **argv)
     // TurtleBot runs until timer runs out
     while (ros::ok() && secondsElapsed <= 480)
     {
-        // State 1: Scanning
+        // State 1: Scanning ------------------------------
         ROS_INFO("SCANNING");
         angle_of_interest = full_scan(NUM_SECTORS, move, pick_line, ignore_back);
         ignore_back = true; // ignore_back is false only at the beginning and after a collision
 
         move.rotate(angle_of_interest, ROT_SPEED, true);
 
-        // State 2: Travelling
+        // State 2: Travelling ------------------------------
         ROS_INFO("TRAVELLING");
         steps = 1;
         ros::spinOnce(); // To update minLaserDist
-        while(minLaserDist > CLOSE_THRESH){
+        while(minLaserDist > TRAVEL_STOP_THRESH){
             // Periodic sweeping (not scanning)
             if (steps % 20 == 0){
                 ROS_INFO("Periodic Sweeping");
@@ -124,14 +122,13 @@ int main(int argc, char **argv)
             
             // If collide during the loop inside the forward function, that loop will break and
             //  the collision will be handled below.
-            move.forward(EXPLORE_STEP_SIZE, EXPLORE_SPEED);
-
-            // Sweeping along the way, like a broom
-            // if (steps % SWEEP_INTERVAL == 0){
-            //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
-            //     move.rotate(-2 * SWEEP_RADIUS, ROT_SPEED);
-            //     move.rotate(SWEEP_RADIUS, ROT_SPEED);
-            // }
+            ros::spinOnce();
+            if (minLaserDist < TRAVEL_SLOW_THRESH){
+                move.forward(TRAVEL_STEP_SIZE, TRAVEL_SPEED_SLOW);
+            }
+            else{
+                move.forward(TRAVEL_STEP_SIZE, TRAVEL_SPEED);
+            }
 
             // Timer update
             secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start).count();
@@ -139,11 +136,11 @@ int main(int argc, char **argv)
                 break;
             }
             
-            // State 3: Collision
+            // State 3: Collision ------------------------------
             if(move.is_bumped()){
                 // Move backward. Hopefully won't bump into something while going forward
                 ROS_WARN("Moving backwards away from collision zone.");
-                move.forward(-2 * EXPLORE_STEP_SIZE, EXPLORE_SPEED);
+                move.forward(-2 * TRAVEL_STEP_SIZE, TRAVEL_SPEED);
                 move.reset_bumped();             
                 ignore_back = false; // After a collision, the robot should consider moving back the way it came
                 ROS_INFO("Escaped from collision zone. Resuming operation.");
