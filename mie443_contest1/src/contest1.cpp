@@ -72,11 +72,53 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "image_listener");
     ros::NodeHandle nh;
-    ros::Subscriber laser_sub = nh.subscribe("scan", 10, &laserCallback);
-
     Move move(nh);
 
-    move.rotate(DEG2RAD(2*360), SCAN_ROT_SPEED, true);
+    //move.rotate(DEG2RAD(2*360), SCAN_ROT_SPEED, true);
+    bool wrap_up = false, wrap_down = false;
+    double yaw_converted;
+    double start_yaw;
+    double curr_yaw = DEG2RAD(1), angle=DEG2RAD(-2);
+    double next_angle;
+    int direction = SIGN(angle);
+
+    next_angle = curr_yaw + angle;
+    start_yaw = curr_yaw;
+
+    if (next_angle > DEG2RAD(360)){
+        next_angle = next_angle - DEG2RAD(360);
+        wrap_up = true;
+    }
+    else if (next_angle < 0){
+        //next_angle = next_angle + DEG2RAD(360);
+        wrap_down = true;
+
+    }
+
+    for (int i = 0; i < 5; i++){
+        if (wrap_up && start_yaw <= curr_yaw && curr_yaw < DEG2RAD(360)){
+            yaw_converted = curr_yaw - DEG2RAD(360);
+        }
+        else if (wrap_down && curr_yaw > start_yaw){
+            yaw_converted = curr_yaw - DEG2RAD(360);
+        }
+        else{
+            yaw_converted = curr_yaw;
+        }
+        ROS_INFO("yaw: %f, converted: %f, next: %f", RAD2DEG(curr_yaw), RAD2DEG(yaw_converted), RAD2DEG(next_angle));
+
+        curr_yaw = curr_yaw + direction * DEG2RAD(1);
+        if (curr_yaw > DEG2RAD(360)){
+            curr_yaw = curr_yaw - DEG2RAD(360);
+        }
+        else if (curr_yaw < 0){
+            curr_yaw = curr_yaw + DEG2RAD(360);
+        }
+
+        if (!(direction * yaw_converted < direction * next_angle)){
+            ROS_INFO("DONE");
+        }
+    }
 
     return 0;
 }
