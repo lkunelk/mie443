@@ -172,11 +172,18 @@ class Move{
         bumped = false;
     }
 
-    bool is_collision(){
+    int is_collision(){
         ros::spinOnce(); // Update the bumper states
-        return bumper[kobuki_msgs::BumperEvent::LEFT] == kobuki_msgs::BumperEvent::PRESSED ||
-            bumper[kobuki_msgs::BumperEvent::CENTER] == kobuki_msgs::BumperEvent::PRESSED ||
-            bumper[kobuki_msgs::BumperEvent::RIGHT] == kobuki_msgs::BumperEvent::PRESSED;
+        if(bumper[kobuki_msgs::BumperEvent::LEFT] == kobuki_msgs::BumperEvent::PRESSED) {
+            return kobuki_msgs::BumperEvent::LEFT;
+        }
+        if(bumper[kobuki_msgs::BumperEvent::CENTER] == kobuki_msgs::BumperEvent::PRESSED) {
+            return kobuki_msgs::BumperEvent::CENTER;
+        }
+        if(bumper[kobuki_msgs::BumperEvent::RIGHT] == kobuki_msgs::BumperEvent::PRESSED) {
+            return kobuki_msgs::BumperEvent::RIGHT;
+        }
+        return 0;
     }
 
 };

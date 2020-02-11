@@ -139,12 +139,19 @@ int main(int argc, char **argv)
             }
             
             // State 3: Collision ------------------------------
-            if(move.is_bumped()){
+            int bump = move.is_bumped();
+            if(bump){
                 // Move backward. Hopefully won't bump into something while going forward
                 ROS_WARN("Moving backwards away from collision zone.");
                 move.forward(-backup_coeff * TRAVEL_STEP_SIZE, TRAVEL_SPEED);
                 move.reset_bumped();             
-                ignore_back = false; // After a collision, the robot should consider moving back the way it came
+                if(bump == kobuki_msgs::BumperEvent::CENTER) {
+                    ROS_INFO("Bumped Center");
+                    ignore_back = false; // After a collision, the robot should consider moving back the way it came
+                } else {
+                    ROS_INFO("Bumped Side");
+                }
+
                 backup_coeff = std::max(backup_coeff + 0.5, 4.0);
                 ROS_INFO("Escaped from collision zone. Resuming operation.");
                 break; // After escaping, it goes back to the Scanning state
