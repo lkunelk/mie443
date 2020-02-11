@@ -1,12 +1,15 @@
 #include "ros/ros.h"
+#include <tf/tf.h>
 #include <geometry_msgs/Twist.h>
 #include <kobuki_msgs/BumperEvent.h>
+#include <nav_msgs/Odometry.h>
 #include <math.h>
 
 #define RAD2DEG(rad) ((rad)*180. / M_PI)
 #define SIGN(num) (std::abs(num) / num)
 
 uint8_t bumper[3] = {kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED, kobuki_msgs::BumperEvent::RELEASED};
+float curr_yaw = 0;
 
 void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &msg)
 {
@@ -14,10 +17,19 @@ void bumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &msg)
     bumper[msg->bumper] = msg->state;
 }
 
+void odomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+    curr_yaw = tf::getYaw(msg->pose.pose.orientation);
+    if (curr_yaw < 0)
+        curr_yaw += 2 * M_PI;
+    ROS_INFO("curr yaw %f", curr_yaw);
+}
+
 class Move{
     private:
         ros::Publisher vel_pub;
         ros::Subscriber bumper_sub;
+        ros::Subscriber odom_sub;
         geometry_msgs::Twist vel;
 
         double next_update; // Time (s) when the current movement will be stopped
@@ -27,6 +39,7 @@ class Move{
     Move(ros::NodeHandle nh){
         vel_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel_mux/input/teleop", 1);
         bumper_sub = nh.subscribe("mobile_base/events/bumper", 10, &bumperCallback);
+        odom_sub = nh.subscribe("odom", 10, &odomCallback);
         reset_bumped();
         ROS_INFO("Mover initiated.");
     }
@@ -122,6 +135,7 @@ class Move{
     double is_bumped(){
         return bumped;
     }
+
     void reset_bumped(){
         bumped = false;
     }
