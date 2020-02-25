@@ -32,6 +32,13 @@ target_link_libraries(contest2
     ${OpenCV_LIBRARIES}  
     orocos-kdl)
 
+# SURF descriptor executable
+add_executable(SURF_descriptor 
+    src/SURF_descriptor.cpp)
+target_link_libraries(SURF_descriptor 
+    ${catkin_LIBRARIES}  
+    ${OpenCV_LIBRARIES})
+
 # Webcam Publisher Executable
 add_executable(webcam_publisher 
     src/webcam_publisher.cpp)
