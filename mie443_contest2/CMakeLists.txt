@@ -38,3 +38,8 @@ add_executable(webcam_publisher
 target_link_libraries(webcam_publisher  
     ${catkin_LIBRARIES}  
     ${OpenCV_LIBRARIES})
+
+# Custom Executable
+add_executable(test src/test.cpp)
+target_link_libraries(${catkin_LIBRARIES})
+

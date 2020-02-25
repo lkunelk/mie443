@@ -1,0 +1,13 @@
+<launch>
+  <arg name="world"      default="1"/>
+
+
+  <param name = "NAME" value="23"/>
+
+  <include file="$(find mie443_contest2)/launch/turtlebot_world.launch">
+    <arg name="world" value="arg world"/>
+  </include>
+
+    <node name="test_node" pkg="mie443_contest2" type="contest2" output="screen"/>
+
+</launch>
