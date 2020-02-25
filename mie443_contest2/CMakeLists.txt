@@ -26,6 +26,7 @@ add_executable(contest2
     src/boxes.cpp
     src/navigation.cpp
     src/robot_pose.cpp
+    src/descriptor.cpp
     src/imagePipeline.cpp)
 target_link_libraries(contest2 
     ${catkin_LIBRARIES}  

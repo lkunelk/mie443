@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <iostream>
+#include <descriptor.h>
+
 #include "opencv2/core.hpp"
 #include "opencv2/features2d.hpp"
 #include "opencv2/highgui.hpp"
@@ -9,19 +11,15 @@
 using namespace cv;
 using namespace cv::xfeatures2d;
 
-// Simple SURF descriptor 
-// rosrun mie443_contest2 SURF_descriptor boxes_database/template3.jpg sample_images/blank.jpg
-
-void readme();
+// Callable SURF descriptor
+// TODO: send a number indicating the numbemr of good matchess
 
 /** @function main */
-int main( int argc, char** argv )
+int Descriptor::compareImages( cv::Mat img_object, cv::Mat img_scene )
 {
-  if( argc != 3 )
-  { readme(); return -1; }
 
-  Mat img_object = imread( argv[1], IMREAD_GRAYSCALE );
-  Mat img_scene = imread( argv[2], IMREAD_GRAYSCALE );
+//   Mat img_object = imread( argv[1], IMREAD_GRAYSCALE );
+//   Mat img_scene = imread( argv[2], IMREAD_GRAYSCALE );
 
   if( !img_object.data || !img_scene.data )
   { std::cout<< " --(!) Error reading images " << std::endl; return -1; }
@@ -94,11 +92,7 @@ int main( int argc, char** argv )
 
   //-- Show detected matches
   imshow( "Good Matches & Object detection", img_matches );
-  std::cout << "Number of Good matches" << good_matches.size() << std::endl;
-  waitKey(0);
+
+  waitKey(30);
   return 0;
   }
-
-  /** @function readme */
-  void readme()
-  { std::cout << " Usage: ./SURF_descriptor <img1> <img2>" << std::endl; }
