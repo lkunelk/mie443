@@ -22,6 +22,11 @@ rostopic echo /amcl_pose
 rosrun mie443_contest2 contest2
 ```
 
+Clearing cost map
+```
+rosservice call /move_base/clear_costmap
+```
+
 ### Subscribe to Webcam instead of Kinect
 Change IMAGE_TOPIC in imagePipeline.cpp
 

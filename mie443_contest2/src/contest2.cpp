@@ -50,9 +50,8 @@ int main(int argc, char** argv) {
     // Execute strategy.
     while(ros::ok()) {
         ros::spinOnce();
-        /***YOUR CODE HERE***/
         // Use: boxes.coords
-        // Use: robotPose.x, robotPose.y, robotPose.phi???????????
+        // Use: robotPose.x, robotPose.y, robotPose.phi????????????????????
         id = imagePipeline.getTemplateID(boxes);
         if (id > -1){
             // Coord
@@ -79,7 +78,7 @@ int main(int argc, char** argv) {
     }
 
     // WHEN FINISH EXPLORING ==========================================================================
-    if (is_done){// <----------------------- GIVEN BY ABOVE
+    if (is_done){
         // Post-processing of data
         // Possibly check for double duplicates, etc.
 
@@ -92,7 +91,9 @@ int main(int argc, char** argv) {
         textFile.open(OUTPUT_FILE_PATH);
         for(int i = 0; i < 5; ++i){
             label = labels[i];
-            coord = "(" + std::to_string(coords[i][0]).substr(0, NUM_DIGITS + 1) + ", " + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) + ")";
+            coord = "(" + std::to_string(coords[i][0]).substr(0, NUM_DIGITS + 1) + ", " 
+            + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) 
+            + std::to_string(coords[i][2]).substr(0, NUM_DIGITS + 1) + ")";
             if (is_duplicates[i]){
                 is_duplicate = "is";
             }
