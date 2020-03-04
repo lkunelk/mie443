@@ -43,6 +43,22 @@ bool Boxes::load_coords() {
     return true;
 }
 
+bool is_match(std::string file_name, std::string target){
+    return std::strcmp(file_name.c_str(), target.c_str()) == 0;
+}
+
+std::string get_label(std::string file_name){
+    if (is_match(file_name, "template1.jpg")){
+        return "Raisin Bran";
+    }
+    else if (is_match(file_name, "template2.jpg")){
+        return "Cinnamon Toast Crunch";
+    }
+    else if (is_match(file_name, "template3.jpg")){
+        return "Rice Krispies";
+    }
+}
+
 bool Boxes::load_templates() {
     std::string filePath = ros::package::getPath("mie443_contest2") + 
                            std::string("/boxes_database/templates.xml");
@@ -62,7 +78,10 @@ bool Boxes::load_templates() {
             imagepath = ros::package::getPath("mie443_contest2") + 
                         std::string("/boxes_database/") + 
                         std::string(*it);
+
             templates.push_back(cv::imread(imagepath, CV_LOAD_IMAGE_GRAYSCALE));
+            labels.push_back(get_label(std::string(*it)));
+            
         }        
     } else {
         std::cout << "XML ERROR: Could not open " << filePath << std::endl;

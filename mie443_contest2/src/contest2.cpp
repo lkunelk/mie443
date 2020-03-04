@@ -9,6 +9,11 @@ float x, y, phi, x_goal, y_goal;
 int i = 0;
 float dist = 0.8;
 
+#include <iostream>
+#include <fstream>
+
+#define NUM_DIGITS 3
+#define OUTPUT_FILE_PATH "OUTPUT.txt"
 
 int main(int argc, char** argv) {
     // Setup ROS.
@@ -27,13 +32,32 @@ int main(int argc, char** argv) {
         std::cout << "ERROR: could not load coords or templates" << std::endl;
         return -1;
     }
-    for(int i = 0; i < boxes.coords.size(); ++i) {
-        std::cout << "Box coordinates: " << std::endl;
-        std::cout << i << " x: " << boxes.coords[i][0] << " y: " << boxes.coords[i][1] << " z: " 
-                  << boxes.coords[i][2] << std::endl;
-    }
+    
+    // for(int i = 0; i < boxes.coords.size(); ++i) {
+    //     std::cout << "Box coordinates: " << std::endl;
+    //     std::cout << i << " x: " << boxes.coords[i][0] << " y: " << boxes.coords[i][1] << " z: " 
+    //               << boxes.coords[i][2] << std::endl;
+    // }
+
+
+    // WHEN AT GOAL =========================================================================
+    // NEEDED FROM ABOVE
+    std::vector<float> goal_coord;
+    bool is_done;
+
+    // Initialize variables that store info
+    int id;
+    std::vector<std::string> labels;
+    std::vector<std::vector<float>> coords;
+    std::vector<bool> is_duplicates;
+    
+    // Stores which template is seen based on id
+    std::vector<bool> is_seen(4, false); // 4th element (id = 3) correspond to blank
+
     // Initialize image objectand subscriber.
     ImagePipeline imagePipeline(n);
+
+
     // Execute strategy.
 
 
@@ -58,71 +82,61 @@ int main(int argc, char** argv) {
 
             i = i+1;
 
-            imagePipeline.getTemplateID(boxes);
+            id = imagePipeline.getTemplateID(boxes);
+            if (id > -1){
+                // Coord
+
+                coords.push_back(boxes.coords[i]); 
+
+                // Label
+                if (id == 3){
+                    labels.push_back("Blank");
+                }
+                else{
+                    labels.push_back(boxes.labels[id]);
+                }
+
+                // Update and Check duplicate
+                if (is_seen[id]){
+                    is_duplicates.push_back(true);
+                }
+                else{
+                    is_duplicates.push_back(false);
+                    is_seen[id] = true;
+                }
+            }
 
         }
-        // int test_index = 0;
-        // x = boxes.coords[test_index][0];
-        // y = boxes.coords[test_index][1];
-        // phi = boxes.coords[test_index][2];
-        // x_goal = x + (dist*cos(phi));
-        // y_goal = y + (dist*sin(phi));
-        // std::cout << "goal: " << x_goal << " " << y_goal << " " << phi << std::endl;
-        
-        // //send box to rviz
-        // visualization_msgs::Marker marker;
-        // marker.header.frame_id = "map";
-        // marker.header.stamp = ros::Time();
-        // marker.ns = "my_namespace";
-        // marker.id = 0;
-        // marker.type = visualization_msgs::Marker::SPHERE;
-        // marker.action = visualization_msgs::Marker::ADD;
-        // marker.pose.position.x = x;
-        // marker.pose.position.y = y;
-        // marker.pose.position.z = 0.0;
-        // marker.pose.orientation.x = 0.0;
-        // marker.pose.orientation.y = 0.0;
-        // marker.pose.orientation.z = 0.0;
-        // marker.pose.orientation.w = 1.0;
-        // marker.scale.x = 1;
-        // marker.scale.y = 1;
-        // marker.scale.z = 1;
-        // marker.color.a = 1.0; // Don't forget to set the alpha!
-        // marker.color.r = 0.0;
-        // marker.color.g = 1.0;
-        // marker.color.b = 0.0;
-        // vis_pub.publish( marker );
-
-        // //send goal to rviz
-        // //visualization_msgs::Marker marker;
-        // visualization_msgs::Marker marker2;
-
-        // marker2.header.frame_id = "map";
-        // marker2.header.stamp = ros::Time();
-        // marker2.ns = "my_namespace";
-        // marker2.id = 1;
-        // marker2.type = visualization_msgs::Marker::SPHERE;
-        // marker2.action = visualization_msgs::Marker::ADD;
-        // marker2.pose.position.x = x_goal;
-        // marker2.pose.position.y = y_goal;
-        // marker2.pose.position.z = 0.0;
-        // marker2.pose.orientation.x = 0.0;
-        // marker2.pose.orientation.y = 0.0;
-        // marker2.pose.orientation.z = 0.0;
-        // marker2.pose.orientation.w = 1.0;
-        // marker2.scale.x = 1;
-        // marker2.scale.y = 1;
-        // marker2.scale.z = 1;
-        // marker2.color.a = 1.0; // Don't forget to set the alpha!
-        // marker2.color.r = 0.0;
-        // marker2.color.g = 1.0;
-        // marker2.color.b = 0.0;
-        // vis_pub2.publish( marker2 );
-
-        // navigation.moveToGoal(x_goal, y_goal, phi + 3.14);
-        // imagePipeline.getTemplateID(boxes);
         
         ros::Duration(0.01).sleep();
+    }
+
+    // WHEN FINISH EXPLORING ==========================================================================
+    if (i == boxes.coords.size() - 1){
+        // Post-processing of data
+        // Possibly check for double duplicates, etc.
+
+        // Printing the data to txt file
+        std::ofstream textFile;
+        std::string label;
+        std::string coord;
+        std::string is_duplicate;
+
+        textFile.open(OUTPUT_FILE_PATH);
+        for(int i = 0; i < 5; ++i){
+            label = labels[i];
+            coord = "(" + std::to_string(coords[i][0]).substr(0, NUM_DIGITS + 1) + ", " 
+            + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) 
+            + std::to_string(coords[i][2]).substr(0, NUM_DIGITS + 1) + ")";
+            if (is_duplicates[i]){
+                is_duplicate = "is";
+            }
+            else{
+                is_duplicate = "is not";
+            }
+            textFile << "Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n";
+        } 
+        textFile.close();
     }
     return 0;
 }
