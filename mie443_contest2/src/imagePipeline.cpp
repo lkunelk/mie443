@@ -1,7 +1,9 @@
 #include <imagePipeline.h>
+#include <descriptor.h>
 
 #define IMAGE_TYPE sensor_msgs::image_encodings::BGR8
-#define IMAGE_TOPIC "camera/rgb/image_raw" // kinect:"camera/rgb/image_raw" webcam:"camera/image"
+// #define IMAGE_TOPIC "camera/rgb/image_raw" // kinect:"camera/rgb/image_raw" webcam:"camera/image"
+#define IMAGE_TOPIC "camera/image" // kinect:"camera/rgb/image_raw" webcam:"camera/image"
 
 ImagePipeline::ImagePipeline(ros::NodeHandle& n) {
     image_transport::ImageTransport it(n);
@@ -24,6 +26,8 @@ void ImagePipeline::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 }
 
 int ImagePipeline::getTemplateID(Boxes& boxes) {
+    Descriptor descriptor; 
+
     int template_id = -1;
     if(!isValid) {
         std::cout << "ERROR: INVALID IMAGE!" << std::endl;
@@ -35,8 +39,19 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
     } else {
         /***YOUR CODE HERE***/
         // Use: boxes.templates
+        for(int i = 0; i < boxes.templates.size(); ++i) {
+            std::cout << "Template Number: " << i << std::endl;
+
+            descriptor.compareImages(img, boxes.templates[i]);
+        }
+
+        //
+ 
+
+
         cv::imshow("view", img);
-        cv::waitKey(10);
+        cv::waitKey(30);
     }  
     return template_id;
 }
+

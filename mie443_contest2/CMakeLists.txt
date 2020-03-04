@@ -26,11 +26,19 @@ add_executable(contest2
     src/boxes.cpp
     src/navigation.cpp
     src/robot_pose.cpp
+    src/descriptor.cpp
     src/imagePipeline.cpp)
 target_link_libraries(contest2 
     ${catkin_LIBRARIES}  
     ${OpenCV_LIBRARIES}  
     orocos-kdl)
+
+# SURF descriptor executable
+add_executable(SURF_descriptor 
+    src/SURF_descriptor.cpp)
+target_link_libraries(SURF_descriptor 
+    ${catkin_LIBRARIES}  
+    ${OpenCV_LIBRARIES})
 
 # Webcam Publisher Executable
 add_executable(webcam_publisher 
