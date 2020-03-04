@@ -49,78 +49,78 @@ int main(int argc, char** argv) {
         /***YOUR CODE HERE***/
         // Use: boxes.coords
         // Use: robotPose.x, robotPose.y, robotPose.phi
-        // if(i < boxes.coords.size()){
-        //     x = boxes.coords[i][0];
-        //     y = boxes.coords[i][1];
-        //     phi = boxes.coords[i][2];
+        if(i < boxes.coords.size()){
+            x = boxes.coords[i][0];
+            y = boxes.coords[i][1];
+            phi = boxes.coords[i][2];
             
-        //     navigation.moveToGoal(x + (dist*cos(phi)), y + (dist*sin(phi)), phi);
+            navigation.moveToGoal(x + (dist*cos(phi)), y + (dist*sin(phi)), phi + 3.14);
 
-        //     i = i+1;
+            i = i+1;
 
-        //     imagePipeline.getTemplateID(boxes);
+            imagePipeline.getTemplateID(boxes);
 
-        // }
-        int test_index = 0;
-        x = boxes.coords[test_index][0];
-        y = boxes.coords[test_index][1];
-        phi = boxes.coords[test_index][2];
-        x_goal = x + (dist*cos(phi));
-        y_goal = y + (dist*sin(phi));
-        std::cout << "goal: " << x_goal << " " << y_goal << " " << phi << std::endl;
+        }
+        // int test_index = 0;
+        // x = boxes.coords[test_index][0];
+        // y = boxes.coords[test_index][1];
+        // phi = boxes.coords[test_index][2];
+        // x_goal = x + (dist*cos(phi));
+        // y_goal = y + (dist*sin(phi));
+        // std::cout << "goal: " << x_goal << " " << y_goal << " " << phi << std::endl;
         
-        //send box to rviz
-        visualization_msgs::Marker marker;
-        marker.header.frame_id = "map";
-        marker.header.stamp = ros::Time();
-        marker.ns = "my_namespace";
-        marker.id = 0;
-        marker.type = visualization_msgs::Marker::SPHERE;
-        marker.action = visualization_msgs::Marker::ADD;
-        marker.pose.position.x = x;
-        marker.pose.position.y = y;
-        marker.pose.position.z = 0.0;
-        marker.pose.orientation.x = 0.0;
-        marker.pose.orientation.y = 0.0;
-        marker.pose.orientation.z = 0.0;
-        marker.pose.orientation.w = 1.0;
-        marker.scale.x = 1;
-        marker.scale.y = 1;
-        marker.scale.z = 1;
-        marker.color.a = 1.0; // Don't forget to set the alpha!
-        marker.color.r = 0.0;
-        marker.color.g = 1.0;
-        marker.color.b = 0.0;
-        vis_pub.publish( marker );
+        // //send box to rviz
+        // visualization_msgs::Marker marker;
+        // marker.header.frame_id = "map";
+        // marker.header.stamp = ros::Time();
+        // marker.ns = "my_namespace";
+        // marker.id = 0;
+        // marker.type = visualization_msgs::Marker::SPHERE;
+        // marker.action = visualization_msgs::Marker::ADD;
+        // marker.pose.position.x = x;
+        // marker.pose.position.y = y;
+        // marker.pose.position.z = 0.0;
+        // marker.pose.orientation.x = 0.0;
+        // marker.pose.orientation.y = 0.0;
+        // marker.pose.orientation.z = 0.0;
+        // marker.pose.orientation.w = 1.0;
+        // marker.scale.x = 1;
+        // marker.scale.y = 1;
+        // marker.scale.z = 1;
+        // marker.color.a = 1.0; // Don't forget to set the alpha!
+        // marker.color.r = 0.0;
+        // marker.color.g = 1.0;
+        // marker.color.b = 0.0;
+        // vis_pub.publish( marker );
 
-        //send goal to rviz
-        //visualization_msgs::Marker marker;
-        visualization_msgs::Marker marker2;
+        // //send goal to rviz
+        // //visualization_msgs::Marker marker;
+        // visualization_msgs::Marker marker2;
 
-        marker2.header.frame_id = "map";
-        marker2.header.stamp = ros::Time();
-        marker2.ns = "my_namespace";
-        marker2.id = 1;
-        marker2.type = visualization_msgs::Marker::SPHERE;
-        marker2.action = visualization_msgs::Marker::ADD;
-        marker2.pose.position.x = x_goal;
-        marker2.pose.position.y = y_goal;
-        marker2.pose.position.z = 0.0;
-        marker2.pose.orientation.x = 0.0;
-        marker2.pose.orientation.y = 0.0;
-        marker2.pose.orientation.z = 0.0;
-        marker2.pose.orientation.w = 1.0;
-        marker2.scale.x = 1;
-        marker2.scale.y = 1;
-        marker2.scale.z = 1;
-        marker2.color.a = 1.0; // Don't forget to set the alpha!
-        marker2.color.r = 0.0;
-        marker2.color.g = 1.0;
-        marker2.color.b = 0.0;
-        vis_pub2.publish( marker2 );
+        // marker2.header.frame_id = "map";
+        // marker2.header.stamp = ros::Time();
+        // marker2.ns = "my_namespace";
+        // marker2.id = 1;
+        // marker2.type = visualization_msgs::Marker::SPHERE;
+        // marker2.action = visualization_msgs::Marker::ADD;
+        // marker2.pose.position.x = x_goal;
+        // marker2.pose.position.y = y_goal;
+        // marker2.pose.position.z = 0.0;
+        // marker2.pose.orientation.x = 0.0;
+        // marker2.pose.orientation.y = 0.0;
+        // marker2.pose.orientation.z = 0.0;
+        // marker2.pose.orientation.w = 1.0;
+        // marker2.scale.x = 1;
+        // marker2.scale.y = 1;
+        // marker2.scale.z = 1;
+        // marker2.color.a = 1.0; // Don't forget to set the alpha!
+        // marker2.color.r = 0.0;
+        // marker2.color.g = 1.0;
+        // marker2.color.b = 0.0;
+        // vis_pub2.publish( marker2 );
 
-        navigation.moveToGoal(x_goal, y_goal, phi + 3.14);
-        imagePipeline.getTemplateID(boxes);
+        // navigation.moveToGoal(x_goal, y_goal, phi + 3.14);
+        // imagePipeline.getTemplateID(boxes);
         
         ros::Duration(0.01).sleep();
     }
