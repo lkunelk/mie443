@@ -3,7 +3,7 @@
 
 #define IMAGE_TYPE sensor_msgs::image_encodings::BGR8
 // #define IMAGE_TOPIC "camera/rgb/image_raw" // kinect:"camera/rgb/image_raw" webcam:"camera/image"
-#define IMAGE_TOPIC "camera/image" // kinect:"camera/rgb/image_raw" webcam:"camera/image"
+#define IMAGE_TOPIC "camera/rgb/image_raw" // kinect:"camera/rgb/image_raw" webcam:"camera/image"
 
 #define BLANK_THRESHOLD 300
 
@@ -42,7 +42,7 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
         std::cout << "img.rows:" << img.rows << std::endl;
         std::cout << "img.cols:" << img.cols << std::endl;
     } else {
-        for(int i = 0; i < boxes.templates.size(); ++i) {
+        for(int i = 0; i < boxes.templates.size(); i++) {
             std::cout << "Template Number: " << i << std::endl;
 
             // Get level of match to a certain template

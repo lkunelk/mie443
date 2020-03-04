@@ -64,6 +64,7 @@ int main(int argc, char** argv) {
 
     // create array with optimized path
 
+    int RANGE = 1;
     while(ros::ok()) {
         ros::spinOnce();    
         std::cout << "now: " << robotPose.x << " " << robotPose.y << " " << robotPose.phi << std::endl;
@@ -73,7 +74,7 @@ int main(int argc, char** argv) {
         /***YOUR CODE HERE***/
         // Use: boxes.coords
         // Use: robotPose.x, robotPose.y, robotPose.phi
-        if(i < boxes.coords.size()){
+        if(i < RANGE){
             x = boxes.coords[i][0];
             y = boxes.coords[i][1];
             phi = boxes.coords[i][2];
@@ -83,6 +84,7 @@ int main(int argc, char** argv) {
             i = i+1;
 
             id = imagePipeline.getTemplateID(boxes);
+
             if (id > -1){
                 // Coord
 
@@ -106,37 +108,39 @@ int main(int argc, char** argv) {
                 }
             }
 
+        } else {
+            break;
         }
         
         ros::Duration(0.01).sleep();
     }
-
+    std::cout<<"Done exploring"<<std::endl;
     // WHEN FINISH EXPLORING ==========================================================================
-    if (i == boxes.coords.size() - 1){
-        // Post-processing of data
-        // Possibly check for double duplicates, etc.
+    // Post-processing of data
+    // Possibly check for double duplicates, etc.
 
-        // Printing the data to txt file
-        std::ofstream textFile;
-        std::string label;
-        std::string coord;
-        std::string is_duplicate;
+    // Printing the data to txt file
+    std::ofstream textFile;
+    std::string label;
+    std::string coord;
+    std::string is_duplicate;
 
-        textFile.open(OUTPUT_FILE_PATH);
-        for(int i = 0; i < 5; ++i){
-            label = labels[i];
-            coord = "(" + std::to_string(coords[i][0]).substr(0, NUM_DIGITS + 1) + ", " 
-            + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) 
-            + std::to_string(coords[i][2]).substr(0, NUM_DIGITS + 1) + ")";
-            if (is_duplicates[i]){
-                is_duplicate = "is";
-            }
-            else{
-                is_duplicate = "is not";
-            }
-            textFile << "Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n";
-        } 
-        textFile.close();
-    }
+    textFile.open(OUTPUT_FILE_PATH);
+    textFile << "RESULTS!!!\n===============\n\n";
+    for(int i = 0; i < labels.size(); i++){
+        label = labels[i];
+        coord = "(" + std::to_string(coords[i][0]).substr(0, NUM_DIGITS + 1) + ", " 
+        + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) 
+        + std::to_string(coords[i][2]).substr(0, NUM_DIGITS + 1) + ")";
+        if (is_duplicates[i]){
+            is_duplicate = "is";
+        }
+        else{
+            is_duplicate = "is not";
+        }
+        textFile << "Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n";
+    } 
+    textFile.close();
+    
     return 0;
 }
