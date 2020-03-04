@@ -61,10 +61,10 @@ int main(int argc, char** argv) {
         //     imagePipeline.getTemplateID(boxes);
 
         // }
-
-        x = boxes.coords[3][0];
-        y = boxes.coords[3][1];
-        phi = boxes.coords[3][2];
+        int test_index = 0;
+        x = boxes.coords[test_index][0];
+        y = boxes.coords[test_index][1];
+        phi = boxes.coords[test_index][2];
         x_goal = x + (dist*cos(phi));
         y_goal = y + (dist*sin(phi));
         std::cout << "goal: " << x_goal << " " << y_goal << " " << phi << std::endl;
@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
         marker2.color.b = 0.0;
         vis_pub2.publish( marker2 );
 
-        navigation.moveToGoal(x_goal, y_goal, 2*3.14-phi);
+        navigation.moveToGoal(x_goal, y_goal, phi + 3.14);
         imagePipeline.getTemplateID(boxes);
         
         ros::Duration(0.01).sleep();
