@@ -9,7 +9,7 @@ float x, y, phi, x_goal, y_goal, x_start, y_start, phi_start;
 int i = 0;
 
 //distance to stand away from box to take picture
-float dist = 0.8;
+float dist = 0.3;
 
 #include <iostream>
 #include <fstream>
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 
     // create array with optimized path
 
-    int RANGE = 1;
+    int RANGE = 2;
     while(ros::ok()) {
         ros::spinOnce();    
         std::cout << "now: " << robotPose.x << " " << robotPose.y << " " << robotPose.phi << std::endl;
@@ -88,18 +88,26 @@ int main(int argc, char** argv) {
 
             i = i+1;
 
-            id = imagePipeline.getTemplateID(boxes);
+            for (int j = 0; j<10000; j++){
+                ros::spinOnce();
+                id = imagePipeline.getTemplateID(boxes);
+                if (id != -9){ // Not an invalid imaage
+                    break;
+                }
+            }
+            
 
             if (id > -1){
                 // Coord
-
                 coords.push_back(boxes.coords[i]); 
 
                 // Label
                 if (id == 3){
+                    std::cout << "Recognized Blank" << std::endl;
                     labels.push_back("Blank");
                 }
                 else{
+                    std::cout << "Recognize " << boxes.labels[id] << std::endl;
                     labels.push_back(boxes.labels[id]);
                 }
 
@@ -115,7 +123,7 @@ int main(int argc, char** argv) {
 
         } else {
             //send Robot back to goal
-            navigation.moveToGoal(x_start, y_start, phi_start);
+            //navigation.moveToGoal(x_start, y_start, phi_start);
             break;
         }
         
@@ -132,6 +140,7 @@ int main(int argc, char** argv) {
     std::string coord;
     std::string is_duplicate;
 
+    std::cout << "Writing Results" << std::endl;
     textFile.open(OUTPUT_FILE_PATH);
     textFile << "RESULTS!!!\n===============\n\n";
     for(int i = 0; i < labels.size(); i++){

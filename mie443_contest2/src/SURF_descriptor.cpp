@@ -36,28 +36,17 @@ int main( int argc, char** argv )
   detector->detectAndCompute(img_scene, Mat(), keypoints_scene, descriptors_scene);
 
   //-- Step 3: Matching descriptor vectors using FLANN matcher
-  FlannBasedMatcher matcher;
-  std::vector< DMatch > matches;
-  matcher.match( descriptors_object, descriptors_scene, matches );
-
-  double max_dist = 0; double min_dist = 100;
-
-  //-- Quick calculation of max and min distances between keypoints
-  for( int i = 0; i < descriptors_object.rows; i++ )
-  { double dist = matches[i].distance;
-    if( dist < min_dist ) min_dist = dist;
-    if( dist > max_dist ) max_dist = dist;
-  }
-
-  printf("-- Max dist : %f \n", max_dist );
-  printf("-- Min dist : %f \n", min_dist );
-
-  //-- Draw only "good" matches (i.e. whose distance is less than 3*min_dist )
+  std::vector<std::vector<cv::DMatch>> matches;
+  cv::BFMatcher matcher;
+  matcher.knnMatch(descriptors_object, descriptors_scene, matches, 2);  // Find two nearest matches
   std::vector< DMatch > good_matches;
-
-  for( int i = 0; i < descriptors_object.rows; i++ )
-  { if( matches[i].distance < 3*min_dist )
-     { good_matches.push_back( matches[i]); }
+  for (int i = 0; i < matches.size(); ++i)
+  {
+      const float ratio = 0.8; // As in Lowe's paper; can be tuned
+      if (matches[i][0].distance < ratio * matches[i][1].distance)
+      {
+          good_matches.push_back(matches[i][0]);
+      }
   }
 
   Mat img_matches;
@@ -91,6 +80,16 @@ int main( int argc, char** argv )
   line( img_matches, scene_corners[1] + Point2f( img_object.cols, 0), scene_corners[2] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
   line( img_matches, scene_corners[2] + Point2f( img_object.cols, 0), scene_corners[3] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
   line( img_matches, scene_corners[3] + Point2f( img_object.cols, 0), scene_corners[0] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
+
+  cv::Point2f pt1 = scene_corners[0] + Point2f( img_object.cols, 0);
+  cv::Point2f pt2 = scene_corners[1] + Point2f( img_object.cols, 0);
+  cv::Point2f pt3 = scene_corners[2] + Point2f( img_object.cols, 0);
+  cv::Point2f pt4 = scene_corners[3] + Point2f( img_object.cols, 0);
+
+
+  float area = pt1.x * pt2.y - pt1.y * pt2.x + pt2.x * pt3.y - pt2.y * pt3.x + pt3.x * pt4.y - pt3.y * pt4.x + pt4.x * pt1.y - pt4.y * pt1.x;
+  area = area / 2;
+  std::cout << "Area: " << area << std::endl;
 
   //-- Show detected matches
   imshow( "Good Matches & Object detection", img_matches );

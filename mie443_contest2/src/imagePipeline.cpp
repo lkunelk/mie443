@@ -10,6 +10,7 @@
 ImagePipeline::ImagePipeline(ros::NodeHandle& n) {
     image_transport::ImageTransport it(n);
     sub = it.subscribe(IMAGE_TOPIC, 1, &ImagePipeline::imageCallback, this);
+    std::cout<<"Initialized"<< std::endl;
     isValid = false;
 }
 
@@ -32,16 +33,19 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
 
     int template_id = -1;
     int highest_match = -1;
-    int curr_match = -1;
+    float curr_match = -1;
 
     if(!isValid) {
-        std::cout << "ERROR: INVALID IMAGE!" << std::endl;
+        //std::cout << "ERROR: INVALID IMAGE!" << std::endl;
+        return -9;
     } else if(img.empty() || img.rows <= 0 || img.cols <= 0) {
         std::cout << "ERROR: VALID IMAGE, BUT STILL A PROBLEM EXISTS!" << std::endl;
         std::cout << "img.empty():" << img.empty() << std::endl;
         std::cout << "img.rows:" << img.rows << std::endl;
         std::cout << "img.cols:" << img.cols << std::endl;
+        return -9;
     } else {
+        std::cout << "VALID IMAGE" << std::endl;
         for(int i = 0; i < boxes.templates.size(); i++) {
             std::cout << "Template Number: " << i << std::endl;
 
