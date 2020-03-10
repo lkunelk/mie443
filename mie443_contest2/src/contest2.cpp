@@ -5,8 +5,10 @@
 #include <visualization_msgs/Marker.h>
 
 //define some variables here
-float x, y, phi, x_goal, y_goal;
+float x, y, phi, x_goal, y_goal, x_start, y_start, phi_start;
 int i = 0;
+
+//distance to stand away from box to take picture
 float dist = 0.8;
 
 #include <iostream>
@@ -57,9 +59,12 @@ int main(int argc, char** argv) {
     // Initialize image objectand subscriber.
     ImagePipeline imagePipeline(n);
 
+    //Initialize and store final position to go to
+    x_start = robotPose.x;
+    y_start = robotPose.y;
+    phi_start = robotPose.phi;
 
     // Execute strategy.
-
 
 
     // create array with optimized path
@@ -109,6 +114,8 @@ int main(int argc, char** argv) {
             }
 
         } else {
+            //send Robot back to goal
+            navigation.moveToGoal(x_start, y_start, phi_start);
             break;
         }
         
