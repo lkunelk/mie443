@@ -8,8 +8,10 @@
 float x, y, phi, x_goal, y_goal, x_start, y_start, phi_start;
 int i = 0;
 
-//distance to stand away from box to take picture
-float dist = 0.8;
+//default distance to stand away from box to take picture
+float default_dist_to_box = 0.8;
+float default_distance_thresh_coeff = 3;
+float default_blank_thresh = 300;
 
 #include <iostream>
 #include <fstream>
@@ -21,6 +23,20 @@ int main(int argc, char** argv) {
     // Setup ROS.
     ros::init(argc, argv, "contest2");
     ros::NodeHandle n;
+
+    // Params
+    double dist;
+    double distance_thresh_coeff;
+    int blank_thresh;
+    int num_boxes;
+    n.param<double>("dist_to_box", dist, default_dist_to_box);
+    n.param<double>("distance_thresh_coeff", distance_thresh_coeff, default_distance_thresh_coeff);
+    n.param<int>("blank_thresh", blank_thresh, default_blank_thresh);
+    n.param<int>("num_boxes", num_boxes, 5);
+
+    std::cout<<"HELLO"<<std::endl;
+    std::cout << dist <<std::endl;// << distance_thresh_coeff << blank_thresh << num_boxes<<std::endl;
+
     // Robot pose object + subscriber.
     RobotPose robotPose(0,0,0);
     Navigation navigation;
@@ -57,7 +73,7 @@ int main(int argc, char** argv) {
     std::vector<bool> is_seen(4, false); // 4th element (id = 3) correspond to blank
 
     // Initialize image objectand subscriber.
-    ImagePipeline imagePipeline(n);
+    ImagePipeline imagePipeline(n, blank_thresh, distance_thresh_coeff);
 
     //Initialize and store final position to go to
     x_start = robotPose.x;
@@ -68,8 +84,6 @@ int main(int argc, char** argv) {
 
 
     // create array with optimized path
-
-    int RANGE = 1;
     while(ros::ok()) {
         ros::spinOnce();    
         std::cout << "now: " << robotPose.x << " " << robotPose.y << " " << robotPose.phi << std::endl;
@@ -79,7 +93,7 @@ int main(int argc, char** argv) {
         /***YOUR CODE HERE***/
         // Use: boxes.coords
         // Use: robotPose.x, robotPose.y, robotPose.phi
-        if(i < RANGE){
+        if(i < num_boxes){
             x = boxes.coords[i][0];
             y = boxes.coords[i][1];
             phi = boxes.coords[i][2];
@@ -122,6 +136,7 @@ int main(int argc, char** argv) {
         ros::Duration(0.01).sleep();
     }
     std::cout<<"Done exploring"<<std::endl;
+
     // WHEN FINISH EXPLORING ==========================================================================
     // Post-processing of data
     // Possibly check for double duplicates, etc.
@@ -135,6 +150,7 @@ int main(int argc, char** argv) {
     textFile.open(OUTPUT_FILE_PATH);
     textFile << "RESULTS!!!\n===============\n\n";
     for(int i = 0; i < labels.size(); i++){
+        std::cout << "Writing about " << labels[i] << std::endl;
         label = labels[i];
         coord = "(" + std::to_string(coords[i][0]).substr(0, NUM_DIGITS + 1) + ", " 
         + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) 

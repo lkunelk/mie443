@@ -12,12 +12,10 @@ using namespace cv;
 using namespace cv::xfeatures2d;
 
 
-#define DISTANCE_THRESH_COEFF 3 
-
 // Callable SURF descriptor
 
 /** @function main */
-int Descriptor::compareImages( cv::Mat img_object, cv::Mat img_scene )
+int Descriptor::compareImages( cv::Mat img_object, cv::Mat img_scene, double distance_thresh_coeff)
 {
 
 //   Mat img_object = imread( argv[1], IMREAD_GRAYSCALE );
@@ -56,7 +54,7 @@ int Descriptor::compareImages( cv::Mat img_object, cv::Mat img_scene )
   std::vector< DMatch > good_matches;
 
   for( int i = 0; i < descriptors_object.rows; i++ )
-  { if( matches[i].distance < DISTANCE_THRESH_COEFF*min_dist )
+  { if( matches[i].distance < distance_thresh_coeff*min_dist )
      { good_matches.push_back( matches[i]); }
   }
 

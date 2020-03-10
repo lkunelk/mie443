@@ -5,12 +5,13 @@
 // #define IMAGE_TOPIC "camera/rgb/image_raw" // kinect:"camera/rgb/image_raw" webcam:"camera/image"
 #define IMAGE_TOPIC "camera/rgb/image_raw" // kinect:"camera/rgb/image_raw" webcam:"camera/image"
 
-#define BLANK_THRESHOLD 300
 
-ImagePipeline::ImagePipeline(ros::NodeHandle& n) {
+ImagePipeline::ImagePipeline(ros::NodeHandle& n, int blank_threshold, double distance_threshold_coeff) {
     image_transport::ImageTransport it(n);
     sub = it.subscribe(IMAGE_TOPIC, 1, &ImagePipeline::imageCallback, this);
     isValid = false;
+    blank_thresh = blank_threshold;
+    distance_thresh_coeff = distance_threshold_coeff;
 }
 
 void ImagePipeline::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
@@ -46,7 +47,7 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
             std::cout << "Template Number: " << i << std::endl;
 
             // Get level of match to a certain template
-            curr_match = descriptor.compareImages(img, boxes.templates[i]);
+            curr_match = descriptor.compareImages(img, boxes.templates[i], distance_thresh_coeff);
             std::cout << boxes.labels[i] + " -> " + std::to_string(curr_match) + " matches" << std::endl;
             if (curr_match > highest_match){
                 highest_match = curr_match;
@@ -54,7 +55,7 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
             }
         }
 
-        if (highest_match < BLANK_THRESHOLD){
+        if (highest_match < blank_thresh){
             template_id = 3; // Corresponding to blank
         }
 
