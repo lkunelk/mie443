@@ -12,6 +12,7 @@ int i = 0;
 float default_dist_to_box = 0.8;
 float default_distance_thresh_coeff = 3;
 float default_blank_thresh = 300;
+float default_ratio = 0.8; // As in Lowe's paper; can be tuned
 
 #include <iostream>
 #include <fstream>
@@ -29,13 +30,12 @@ int main(int argc, char** argv) {
     double distance_thresh_coeff;
     int blank_thresh;
     int num_boxes;
+    double ratio;
     n.param<double>("dist_to_box", dist, default_dist_to_box);
     n.param<double>("distance_thresh_coeff", distance_thresh_coeff, default_distance_thresh_coeff);
     n.param<int>("blank_thresh", blank_thresh, default_blank_thresh);
     n.param<int>("num_boxes", num_boxes, 5);
-
-    std::cout<<"HELLO"<<std::endl;
-    std::cout << dist <<std::endl;// << distance_thresh_coeff << blank_thresh << num_boxes<<std::endl;
+    n.param<double>("ratio", ratio, default_ratio);
 
     // Robot pose object + subscriber.
     RobotPose robotPose(0,0,0);
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     std::vector<bool> is_seen(4, false); // 4th element (id = 3) correspond to blank
 
     // Initialize image objectand subscriber.
-    ImagePipeline imagePipeline(n, blank_thresh, distance_thresh_coeff);
+    ImagePipeline imagePipeline(n, blank_thresh, ratio);
 
     //Initialize and store final position to go to
     x_start = robotPose.x;

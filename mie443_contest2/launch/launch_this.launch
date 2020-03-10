@@ -1,11 +1,12 @@
 <launch>
     <arg name="optional"      default="1"/>
-    
+
     <param name="distance_thresh_coeff" type="double" value="3"/> 
     <param name="dist_to_box" type="double" value="0.1"/>
     <param name="blank_thresh" type="int" value="300"/> 
     <param name="num_boxes" type="int" value="2"/>
-
+    <param name="ratio" type="double" value="0.8"/>  <!--As in Lowe's paper; can be tuned-->
+    
     <!-- <include file="$(find mie443_contest2)/launch/turtlebot_world.launch">
         <arg name="world" value="arg world"/>
     </include> -->
