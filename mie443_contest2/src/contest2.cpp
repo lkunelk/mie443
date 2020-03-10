@@ -1,14 +1,19 @@
 #include <boxes.h>
+#include <cmath.h>
 #include <navigation.h>
 #include <robot_pose.h>
 #include <imagePipeline.h>
 #include <visualization_msgs/Marker.h>
 
-//define some variables here
-float x, y, phi, x_goal, y_goal, x_start, y_start, phi_start;
-int i = 0;
-
-//distance to stand away from box to take picture
+//define variables for navigation to goal
+float x, y, phi, x_goal, y_goal;
+//define variables to store starting orientation
+float x_start, y_start, phi_start;
+//define temp variables to use to determine shortest path
+float mindist, tempdist;
+//define indexer for while loop
+int i = 0, index_of_minbox = 0;
+//define distance to stand away from box to take picture
 float dist = 0.8;
 
 #include <iostream>
@@ -34,13 +39,6 @@ int main(int argc, char** argv) {
         std::cout << "ERROR: could not load coords or templates" << std::endl;
         return -1;
     }
-    
-    // for(int i = 0; i < boxes.coords.size(); ++i) {
-    //     std::cout << "Box coordinates: " << std::endl;
-    //     std::cout << i << " x: " << boxes.coords[i][0] << " y: " << boxes.coords[i][1] << " z: " 
-    //               << boxes.coords[i][2] << std::endl;
-    // }
-
 
     // WHEN AT GOAL =========================================================================
     // NEEDED FROM ABOVE
@@ -51,6 +49,7 @@ int main(int argc, char** argv) {
     int id;
     std::vector<std::string> labels;
     std::vector<std::vector<float>> coords;
+    std::vector<std::vector<float>> unvisitedboxes;
     std::vector<bool> is_duplicates;
     
     // Stores which template is seen based on id
@@ -65,27 +64,58 @@ int main(int argc, char** argv) {
     phi_start = robotPose.phi;
 
     // Execute strategy.
-
-
-    // create array with optimized path
+    // intialize array of unvisited boxes
+    for(j=0;j<boxes.size();j++){
+        std::vector<float> box;
+        box.pushback(boxes.coords[j][0]);
+        box.push_back(boxes.coords[j][1]);
+        box.push_back(boxes.coords[j][2]);
+        unvisitedboxes.push_back(box);
+    }
 
     int RANGE = 1;
     while(ros::ok()) {
         ros::spinOnce();    
         std::cout << "now: " << robotPose.x << " " << robotPose.y << " " << robotPose.phi << std::endl;
-        //navigation.moveToGoal(boxes.coords[1][0] + 1.0,boxes.coords[1][1] + 1.0,boxes.coords[1][2]);
-        //navigation.moveToGoal(2.0, 0.5, 0.5);
 
         /***YOUR CODE HERE***/
         // Use: boxes.coords
         // Use: robotPose.x, robotPose.y, robotPose.phi
         if(i < RANGE){
-            x = boxes.coords[i][0];
-            y = boxes.coords[i][1];
-            phi = boxes.coords[i][2];
-            
+
+            for(j=0;j<unvisitedboxes.size();j++){
+                //first time running put in first box coords
+                if (j==0){
+                    //initialize mindist and goal points to fist box
+                    mindist = sqrt(pow(unvisitedboxes[j][0] - robotPose.x,2.0) + pow(unvisitedboxes[j][1] - robotPose.y,2.0));
+                    x = unvisitedboxes[j][0];
+                    y = unvisitedboxes[j][1];
+                    phi = unvisitedboxes[j][2];
+                    index_of_minbox = j;
+                }
+
+                else{
+                    //find dist between next box and 
+                    tempdist = sqrt(pow(unvisitedboxes[j][0] - robotPose.x,2.0) + pow(unvisitedboxes[j][1] - robotPose.y,2.0));
+                    //if dist is shorter then update goal
+                    if (tempdist < mindist){
+                        mindist = tempdist;
+                        x = unvisitedboxes[j][0];
+                        y = unvisitedboxes[j][1];
+                        phi = unvisitedboxes[j][2];
+                        //store index of box to take out of visited box array
+                        index_of_minbox = j;
+                    }
+                    
+                }
+            }
+            //take out visted box from unvisited box array
+            unvisitedboxes.erase(index_of_minbox);
+
+            //move to closest box
             navigation.moveToGoal(x + (dist*cos(phi)), y + (dist*sin(phi)), phi + 3.14);
 
+            //increase index i
             i = i+1;
 
             id = imagePipeline.getTemplateID(boxes);
