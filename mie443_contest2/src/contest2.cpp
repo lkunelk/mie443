@@ -12,10 +12,12 @@ float x, y, phi, x_goal, y_goal;
 float x_start, y_start, phi_start;
 //define temp variables to use to determine shortest path
 float mindist, tempdist;
-//define indexer for while loop and place to store index of box with min dist
-int i = 0, index_of_minbox = 0;
+//define indexers for while loops and place to store index of box with min dist
+int i = 0, m = 1, index_of_minbox = 0, index_of_minbox_in_boxes;
 //define distance to stand away from box to take picture
 float dist = 0.8;
+//define bool to indicate reached goal or not
+bool goal_reached;
 
 #include <iostream>
 #include <fstream>
@@ -71,6 +73,8 @@ int main(int argc, char** argv) {
         box.pushback(boxes.coords[j][0]);
         box.push_back(boxes.coords[j][1]);
         box.push_back(boxes.coords[j][2]);
+        //store which box this is
+        box.push_back(float(j));
         unvisitedboxes.push_back(box);
     }
 
@@ -93,6 +97,7 @@ int main(int argc, char** argv) {
                     y = unvisitedboxes[j][1];
                     phi = unvisitedboxes[j][2];
                     index_of_minbox = j;
+                    index_of_minbox_in_boxes = unvisitedboxes[j][3];
                 }
 
                 else{
@@ -106,6 +111,7 @@ int main(int argc, char** argv) {
                         phi = unvisitedboxes[j][2];
                         //store index of box to take out of visited box array
                         index_of_minbox = j;
+                        index_of_minbox_in_boxes = unvisitedboxes[j][3];
                     }
                     
                 }
@@ -114,8 +120,27 @@ int main(int argc, char** argv) {
             unvisitedboxes.erase(index_of_minbox);
 
             //move to closest box
-            navigation.moveToGoal(x + (dist*cos(phi)), y + (dist*sin(phi)), phi + 3.14);
+            goal_reached = navigation.moveToGoal(x + (dist*cos(phi)), y + (dist*sin(phi)), phi + 3.14);
 
+            //while the robot can't reach the goal
+            while (!goal_reached) {
+                //try adding 10 degrees
+                goal_reached = navigation.moveToGoal(x + (dist*cos(phi)), y + (dist*sin(phi)), phi + 3.14 + 0.17*m);
+                if(goal_reached){
+                    break;
+                }
+                //try subtracting 10 degrees
+                goal_reached = navigation.moveToGoal(x + (dist*cos(phi)), y + (dist*sin(phi)), phi + 3.14 - 0.17*m);
+                
+                //only try up to +- 60 degrees
+                if(m == 6){
+                    break;
+                }
+
+                m = m + 1;
+            }
+            //reset m
+            m = 1;
             //increase index i
             i = i+1;
 
@@ -124,7 +149,7 @@ int main(int argc, char** argv) {
             if (id > -1){
                 // Coord
 
-                coords.push_back(boxes.coords[i]); 
+                coords.push_back(boxes.coords[index_of_minbox_in_boxes]); 
 
                 // Label
                 if (id == 3){
