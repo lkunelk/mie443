@@ -1,5 +1,6 @@
 #include <boxes.h>
 #include <cmath.h>
+#include <math.h>
 #include <navigation.h>
 #include <robot_pose.h>
 #include <imagePipeline.h>
@@ -11,7 +12,7 @@ float x, y, phi, x_goal, y_goal;
 float x_start, y_start, phi_start;
 //define temp variables to use to determine shortest path
 float mindist, tempdist;
-//define indexer for while loop
+//define indexer for while loop and place to store index of box with min dist
 int i = 0, index_of_minbox = 0;
 //define distance to stand away from box to take picture
 float dist = 0.8;
