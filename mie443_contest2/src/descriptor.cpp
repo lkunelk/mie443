@@ -110,11 +110,10 @@ int Descriptor::compareImages( cv::Mat img_object, cv::Mat img_scene, double rat
   area = area / 2;
   std::cout << "Area: " << area << std::endl;
   //-- Show detected matches
-  imshow( "Good Matches & Object detection", img_matches );
+  // imshow( "Good Matches & Object detection", img_matches );
 
 
-  while(cv::waitKey(1) != 27) {
-
-  }
+  // while(cv::waitKey(1) != 27) {
+  // }
   return area;
   }

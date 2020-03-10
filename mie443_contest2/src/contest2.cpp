@@ -10,8 +10,7 @@ int i = 0;
 
 //default distance to stand away from box to take picture
 float default_dist_to_box = 0.8;
-float default_distance_thresh_coeff = 3;
-float default_blank_thresh = 300;
+float default_blank_thresh = 50000;
 float default_ratio = 0.8; // As in Lowe's paper; can be tuned
 
 #include <iostream>
@@ -27,12 +26,10 @@ int main(int argc, char** argv) {
 
     // Params
     double dist;
-    double distance_thresh_coeff;
     int blank_thresh;
     int num_boxes;
     double ratio;
     n.param<double>("dist_to_box", dist, default_dist_to_box);
-    n.param<double>("distance_thresh_coeff", distance_thresh_coeff, default_distance_thresh_coeff);
     n.param<int>("blank_thresh", blank_thresh, default_blank_thresh);
     n.param<int>("num_boxes", num_boxes, 5);
     n.param<double>("ratio", ratio, default_ratio);
