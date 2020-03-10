@@ -1,0 +1,18 @@
+<launch>
+    <arg name="optional"      default="1"/>
+    
+    <param name="distance_thresh_coeff" type="double" value="3"/> 
+    <param name="dist_to_box" type="double" value="0.1"/>
+    <param name="blank_thresh" type="int" value="300"/> 
+    <param name="num_boxes" type="int" value="2"/>
+
+    <!-- <include file="$(find mie443_contest2)/launch/turtlebot_world.launch">
+        <arg name="world" value="arg world"/>
+    </include> -->
+    
+    
+    <node name="contest2_node" pkg="mie443_contest2" type="contest2" output="screen"/>
+
+
+
+</launch>

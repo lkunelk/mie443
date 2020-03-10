@@ -3,5 +3,5 @@
 
 class Descriptor {
     public:
-        int compareImages( cv::Mat img_object, cv::Mat img_scene );
+        int compareImages( cv::Mat img_object, cv::Mat img_scene, double distance_thresh_coeff );
 };

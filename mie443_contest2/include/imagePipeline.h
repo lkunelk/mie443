@@ -12,8 +12,10 @@ class ImagePipeline {
         cv::Mat img;
         bool isValid;
         image_transport::Subscriber sub;
+        float distance_thresh_coeff;
+        float blank_thresh;
     public:
-        ImagePipeline(ros::NodeHandle& n);
+        ImagePipeline(ros::NodeHandle& n, int blank_threshold, double distance_threshold_coeff);
         void imageCallback(const sensor_msgs::ImageConstPtr& msg);
         int getTemplateID(Boxes& boxes);
 };
