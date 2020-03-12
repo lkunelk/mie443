@@ -90,8 +90,17 @@ int Descriptor::compareImages( cv::Mat img_object, cv::Mat img_scene, double rat
   obj_corners[0] = cvPoint(0,0); obj_corners[1] = cvPoint( img_object.cols, 0 );
   obj_corners[2] = cvPoint( img_object.cols, img_object.rows ); obj_corners[3] = cvPoint( 0, img_object.rows );
   std::vector<Point2f> scene_corners(4);
-
-  perspectiveTransform( obj_corners, scene_corners, H);
+  try
+  {
+    /* code */
+      perspectiveTransform( obj_corners, scene_corners, H);
+  }
+  catch(const std::exception& e)
+  {
+    std::cerr << e.what() << '\n';
+    return -1;
+  }
+  
 
   //-- Draw lines between the corners (the mapped object in the scene - image_2 )
   line( img_matches, scene_corners[0] + Point2f( img_object.cols, 0), scene_corners[1] + Point2f( img_object.cols, 0), Scalar(0, 255, 0), 4 );

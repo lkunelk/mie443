@@ -12,7 +12,7 @@ rosrun mie443_contest2 contest2
 ### Robot Execution (AMCL)
 ```
 roslaunch turtlebot_bringup minimal.launch
-roslaunch turtlebot_navigation amcl_demo.launch map_file:=/<absolute_map_path>/map1.yaml
+roslaunch turtlebot_navigation amcl_demo.launch map_file:=/home/tuesday/catkin_ws/src/robobois/mie443_contest2/maps/my_map.yaml
 ```
 
 Ensure Turtlebot is properly connected to the laptop and amcl is running
@@ -24,7 +24,7 @@ rosrun mie443_contest2 contest2
 
 Clearing cost map
 ```
-rosservice call /move_base/clear_costmap
+rosservice call /move_base/clear_costmaps
 ```
 
 ### Subscribe to Webcam instead of Kinect

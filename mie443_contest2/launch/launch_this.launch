@@ -2,7 +2,7 @@
     <arg name="optional"      default="1"/>
 
     <param name="dist_to_box" type="double" value="0.4"/>
-    <param name="blank_thresh" type="int" value="50000"/> 
+    <param name="blank_thresh" type="int" value="100000"/> 
     <param name="num_boxes" type="int" value="5"/>
     <param name="ratio" type="double" value="0.8"/>  <!--As in Lowe's paper; can be tuned-->
     

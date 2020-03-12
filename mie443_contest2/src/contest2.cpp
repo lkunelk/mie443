@@ -3,6 +3,11 @@
 #include <robot_pose.h>
 #include <imagePipeline.h>
 #include <visualization_msgs/Marker.h>
+#include <iostream>
+#include <fstream>
+
+#define NUM_DIGITS 3
+#define OUTPUT_FILE_PATH "/home/tuesday/catkin_ws/OUTPUT.txt"
 
 //define some variables here
 float x, y, phi, x_goal, y_goal, x_start, y_start, phi_start;
@@ -13,11 +18,7 @@ float default_dist_to_box = 0.8;
 float default_blank_thresh = 50000;
 float default_ratio = 0.8; // As in Lowe's paper; can be tuned
 
-#include <iostream>
-#include <fstream>
 
-#define NUM_DIGITS 3
-#define OUTPUT_FILE_PATH "OUTPUT.txt"
 
 int main(int argc, char** argv) {
     // Setup ROS.
@@ -66,7 +67,7 @@ int main(int argc, char** argv) {
     std::vector<std::vector<float>> coords;
     std::vector<bool> is_duplicates;
     
-    // Stores which template is seen based on id
+    // // Stores which template is seen based on id
     std::vector<bool> is_seen(4, false); // 4th element (id = 3) correspond to blank
 
     // Initialize image objectand subscriber.
@@ -114,11 +115,11 @@ int main(int argc, char** argv) {
 
                 // Label
                 if (id == 3){
-                    std::cout << "Recognized Blank" << std::endl;
+                    std::cout << "======== Recognized Blank" << std::endl;
                     labels.push_back("Blank");
                 }
                 else{
-                    std::cout << "Recognize " << boxes.labels[id] << std::endl;
+                    std::cout << "======== Recognized " << boxes.labels[id] << std::endl;
                     labels.push_back(boxes.labels[id]);
                 }
 
@@ -146,20 +147,27 @@ int main(int argc, char** argv) {
     // Post-processing of data
     // Possibly check for double duplicates, etc.
 
-    // Printing the data to txt file
+    //Debug
+    for (int i =0;i<num_boxes;i++){
+        labels.push_back("Test");
+        is_duplicates.push_back(true);
+        coords.push_back(boxes.coords[i]);
+    }
+    
+    
+    // // Printing the data to txt file
     std::ofstream textFile;
     std::string label;
     std::string coord;
     std::string is_duplicate;
 
-    std::cout << "Writing Results" << std::endl;
-    textFile.open(OUTPUT_FILE_PATH);
-    textFile << "RESULTS!!!\n===============\n\n";
+    std::cout<<labels.size()<<std::endl;
+    std::cout<<coords[0].size()<<std::endl;
     for(int i = 0; i < labels.size(); i++){
         std::cout << "Writing about " << labels[i] << std::endl;
         label = labels[i];
         coord = "(" + std::to_string(coords[i][0]).substr(0, NUM_DIGITS + 1) + ", " 
-        + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) 
+        + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) + ", "
         + std::to_string(coords[i][2]).substr(0, NUM_DIGITS + 1) + ")";
         if (is_duplicates[i]){
             is_duplicate = "is";
@@ -167,9 +175,28 @@ int main(int argc, char** argv) {
         else{
             is_duplicate = "is not";
         }
-        textFile << "Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n";
+        std::cout <<"Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n"; 
     } 
-    textFile.close();
+
+    // std::cout << "Writing Results" << std::endl;
+    // textFile.open(OUTPUT_FILE_PATH);
+    // textFile << "RESULTS!!!\n===============\n\n";
+    // for(int i = 0; i < labels.size(); i++){
+    //     std::cout << "Writing about " << labels[i] << std::endl;
+    //     label = labels[i];
+    //     coord = "(" + std::to_string(coords[i][0]).substr(0, NUM_DIGITS + 1) + ", " 
+    //     + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) + ", "
+    //     + std::to_string(coords[i][2]).substr(0, NUM_DIGITS + 1) + ")";
+    //     if (is_duplicates[i]){
+    //         is_duplicate = "is";
+    //     }
+    //     else{
+    //         is_duplicate = "is not";
+    //     }
+    //     std::cout <<"Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n"; 
+    //     textFile << "Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n";
+    // } 
+    // textFile.close();
     
     return 0;
 }

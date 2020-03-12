@@ -52,7 +52,7 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
 
             // Get level of match to a certain template
             curr_match = descriptor.compareImages(img, boxes.templates[i], distance_thresh_coeff);
-            std::cout << boxes.labels[i] + " -> " + std::to_string(curr_match) + " matches" << std::endl;
+            std::cout << boxes.labels[i] + " -> " + std::to_string(curr_match) + " area" << std::endl;
             if (curr_match > highest_match){
                 highest_match = curr_match;
                 template_id = i;
