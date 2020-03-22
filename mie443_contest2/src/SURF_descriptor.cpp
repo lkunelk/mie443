@@ -10,7 +10,7 @@ using namespace cv;
 using namespace cv::xfeatures2d;
 
 // Simple SURF descriptor 
-// rosrun mie443_contest2 SURF_descriptor boxes_database/template3.jpg sample_images/blank.jpg
+// rosrun mie443_contest2 SURF_descriptor boxes_database/template3.jpg sample_images/krispies.jpg
 
 void readme();
 
@@ -42,12 +42,12 @@ int main( int argc, char** argv )
   std::vector< DMatch > good_matches;
   for (int i = 0; i < matches.size(); ++i)
   {
-      const float ratio = 0.8; // As in Lowe's paper; can be tuned
-      if (matches[i][0].distance < ratio * matches[i][1].distance)
+      if (matches[i][0].distance < 0.8 * matches[i][1].distance)
       {
           good_matches.push_back(matches[i][0]);
       }
   }
+
 
   Mat img_matches;
   drawMatches( img_object, keypoints_object, img_scene, keypoints_scene,
@@ -89,11 +89,11 @@ int main( int argc, char** argv )
 
   float area = pt1.x * pt2.y - pt1.y * pt2.x + pt2.x * pt3.y - pt2.y * pt3.x + pt3.x * pt4.y - pt3.y * pt4.x + pt4.x * pt1.y - pt4.y * pt1.x;
   area = area / 2;
-  std::cout << "Area: " << area << std::endl;
+  std::cout << "Area of Bounding Box: " << area << std::endl;
 
   //-- Show detected matches
   imshow( "Good Matches & Object detection", img_matches );
-  std::cout << "Number of Good matches" << good_matches.size() << std::endl;
+  std::cout << "Number of Good matches: " << good_matches.size() << std::endl;
   waitKey(0);
   return 0;
   }

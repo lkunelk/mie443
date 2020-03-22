@@ -117,9 +117,10 @@ int Descriptor::compareImages( cv::Mat img_object, cv::Mat img_scene, double rat
 
   float area = pt1.x * pt2.y - pt1.y * pt2.x + pt2.x * pt3.y - pt2.y * pt3.x + pt3.x * pt4.y - pt3.y * pt4.x + pt4.x * pt1.y - pt4.y * pt1.x;
   area = area / 2;
-  std::cout << "Area: " << area << std::endl;
+  std::cout << "Area of Bounding Box: " << area << std::endl;
   //-- Show detected matches
   // imshow( "Good Matches & Object detection", img_matches );
+  std::cout << "Number of Good matches: " << good_matches.size() << std::endl;
 
 
   // while(cv::waitKey(1) != 27) {
