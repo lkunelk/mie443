@@ -19,7 +19,6 @@ float default_blank_thresh = 50000;
 float default_ratio = 0.8; // As in Lowe's paper; can be tuned
 
 
-
 int main(int argc, char** argv) {
     // Setup ROS.
     ros::init(argc, argv, "contest2");
@@ -48,13 +47,6 @@ int main(int argc, char** argv) {
         std::cout << "ERROR: could not load coords or templates" << std::endl;
         return -1;
     }
-    
-    // for(int i = 0; i < boxes.coords.size(); ++i) {
-    //     std::cout << "Box coordinates: " << std::endl;
-    //     std::cout << i << " x: " << boxes.coords[i][0] << " y: " << boxes.coords[i][1] << " z: " 
-    //               << boxes.coords[i][2] << std::endl;
-    // }
-
 
     // WHEN AT GOAL =========================================================================
     // NEEDED FROM ABOVE
@@ -78,19 +70,12 @@ int main(int argc, char** argv) {
     y_start = robotPose.y;
     phi_start = robotPose.phi;
 
-    // Execute strategy.
-
 
     // create array with optimized path
     while(ros::ok()) {
         ros::spinOnce();    
         std::cout << "now: " << robotPose.x << " " << robotPose.y << " " << robotPose.phi << std::endl;
-        //navigation.moveToGoal(boxes.coords[1][0] + 1.0,boxes.coords[1][1] + 1.0,boxes.coords[1][2]);
-        //navigation.moveToGoal(2.0, 0.5, 0.5);
 
-        /***YOUR CODE HERE***/
-        // Use: boxes.coords
-        // Use: robotPose.x, robotPose.y, robotPose.phi
         if(i < num_boxes){
             x = boxes.coords[i][0];
             y = boxes.coords[i][1];
@@ -135,7 +120,7 @@ int main(int argc, char** argv) {
 
         } else {
             //send Robot back to goal
-            //navigation.moveToGoal(x_start, y_start, phi_start);
+            navigation.moveToGoal(x_start, y_start, phi_start);
             break;
         }
         
@@ -154,8 +139,7 @@ int main(int argc, char** argv) {
         coords.push_back(boxes.coords[i]);
     }
     
-    
-    // // Printing the data to txt file
+    // Printing the data to txt file
     std::ofstream textFile;
     std::string label;
     std::string coord;
@@ -163,6 +147,10 @@ int main(int argc, char** argv) {
 
     std::cout<<labels.size()<<std::endl;
     std::cout<<coords[0].size()<<std::endl;
+
+    std::cout << "Writing Results" << std::endl;
+    textFile.open(OUTPUT_FILE_PATH);
+    textFile << "RESULTS!!!\n===============\n\n";
     for(int i = 0; i < labels.size(); i++){
         std::cout << "Writing about " << labels[i] << std::endl;
         label = labels[i];
@@ -176,27 +164,9 @@ int main(int argc, char** argv) {
             is_duplicate = "is not";
         }
         std::cout <<"Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n"; 
+        textFile << "Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n";
     } 
-
-    // std::cout << "Writing Results" << std::endl;
-    // textFile.open(OUTPUT_FILE_PATH);
-    // textFile << "RESULTS!!!\n===============\n\n";
-    // for(int i = 0; i < labels.size(); i++){
-    //     std::cout << "Writing about " << labels[i] << std::endl;
-    //     label = labels[i];
-    //     coord = "(" + std::to_string(coords[i][0]).substr(0, NUM_DIGITS + 1) + ", " 
-    //     + std::to_string(coords[i][1]).substr(0, NUM_DIGITS + 1) + ", "
-    //     + std::to_string(coords[i][2]).substr(0, NUM_DIGITS + 1) + ")";
-    //     if (is_duplicates[i]){
-    //         is_duplicate = "is";
-    //     }
-    //     else{
-    //         is_duplicate = "is not";
-    //     }
-    //     std::cout <<"Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n"; 
-    //     textFile << "Found " + label + " at " + coord + ". This " + is_duplicate + " a duplicate.\n";
-    // } 
-    // textFile.close();
+    textFile.close();
     
     return 0;
 }
